@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tuxin Request Demo</title>
+    <style>
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .btn {
+            margin: 5px;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            min-height: 200px;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tuxin Request 测试</h1>
+        <div>
+            <button class="btn" onclick="getPosts(1, 5)">获取文章列表</button>
+            <button class="btn" onclick="getPostWithCache(1)">获取文章(带缓存)</button>
+            <button class="btn" onclick="createPost()">创建文章</button>
+            <button class="btn" onclick="getUserWithRetry(1)">获取用户(带重试)</button>
+        </div>
+        <pre id="result">// 结果将显示在这里...</pre>
+    </div>
+
+    <script src="main.ts" type="module"></script>
+</body>
+</html> 

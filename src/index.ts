@@ -24,6 +24,8 @@ export type RequestConfig<T = any> = Prettify<
     retryCount?: number;
     /** 重试间隔时间（毫秒） */
     retryDelay?: number;
+    /** 重试前回调 */
+    beforeRetry?: (error: any, retryCount: number) => Promise<any>;
     /** 是否启用请求缓存，默认 true */
     cache?: boolean;
     /** 缓存有效期（毫秒） */
@@ -40,6 +42,10 @@ export type RequestConfig<T = any> = Prettify<
     requestHandler?: (config: InternalAxiosRequestConfig) => Promise<any>;
     /** 请求错误处理 */
     requestErrorHandler?: (error: any) => Promise<any>;
+    // /** 上传进度回调 */
+    // onUploadProgress?: (progressEvent: ProgressEvent) => void;
+    // /** 下载进度回调 */
+    // onDownloadProgress?: (progressEvent: ProgressEvent) => void;
   }
 >;
 
@@ -118,8 +124,8 @@ class TuxinRequest {
 
   protected requestHandler = async (_config: InternalAxiosRequestConfig) => {
     const config = this.normalizeConfig(_config);
-    const requestKey = this.generateRequestKey(config);
     if (config.cancelDuplicated) {
+      const requestKey = this.generateRequestKey(config);
       this.removePendingRequest(requestKey);
       const controller = new AbortController();
       config.signal = controller.signal;
@@ -166,7 +172,7 @@ class TuxinRequest {
 
     this.requestFinish(config);
 
-    const res = await this.retry(config);
+    const res = await this.retry(error);
     if (res) return res;
 
     // 自定义错误处理
@@ -222,7 +228,8 @@ class TuxinRequest {
    * 重试
    * @param config
    */
-  protected retry(config: RequestConfig) {
+  protected async retry(error: any) {
+    const config = error.config;
     // 处理重试
     const retry =
       typeof config?.retry === "number"
@@ -231,6 +238,7 @@ class TuxinRequest {
     if (retry) {
       config.retryCount = config.retryCount || 0;
       if (config.retryCount < retry) {
+        await config.beforeRetry?.(error, config.retryCount);
         config.retryCount++;
         const delay =
           typeof config.retryDelay === "number"

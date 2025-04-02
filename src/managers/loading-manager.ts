@@ -1,12 +1,17 @@
-export type LoadingTarget = string | HTMLElement;
+import { LoadingConfig, LoadingTarget } from "@/types";
 
 export class Loading {
   public el: HTMLElement | null = null;
   public container: HTMLElement;
-
-  constructor(target?: HTMLElement, hasLoadingStyle = false) {
+  private loadingText?: string;
+  constructor(
+    target?: HTMLElement,
+    loadingText?: string,
+    hasLoadingStyle = false
+  ) {
     this.container = target || document.body;
-    if (hasLoadingStyle) {
+    this.loadingText = loadingText;
+    if (!hasLoadingStyle) {
       this.addStyle();
     }
   }
@@ -14,7 +19,7 @@ export class Loading {
   /**
    * 创建 loading 元素
    */
-  private createLoadingEl(): HTMLElement {
+  private createLoadingEl = (): HTMLElement => {
     const loadingEl = document.createElement("div");
     loadingEl.style.cssText = `
         position: fixed;
@@ -44,11 +49,11 @@ export class Loading {
             animation: spin 1s linear infinite;
             margin: 0 auto 10px;
           "></div>
-          <div>加载中...</div>
+          <div>${this.loadingText}</div>
         </div>
       `;
     return loadingEl;
-  }
+  };
 
   /**
    * 添加 loading 样式
@@ -94,15 +99,20 @@ type LoadingItem = {
   count: number;
 };
 
-class LoadingManager {
+export class LoadingManager {
   /** 存储所有loading的容器对应的loading实例 */
   private loadingMap: WeakMap<HTMLElement, LoadingItem>;
   /** 存储所有loading的容器 */
   private containers: HTMLElement[] = [];
   /** 是否已经添加了全局loading样式 */
-  private hasLoading = false;
+  private hasInit = false;
+  private globalConfig: LoadingConfig;
 
-  constructor() {
+  constructor(config?: LoadingConfig) {
+    this.globalConfig = {
+      loadingText: "加载中...",
+      ...config,
+    };
     this.loadingMap = new WeakMap();
   }
 
@@ -145,13 +155,17 @@ class LoadingManager {
    * 添加 loading
    * @param target loading 的容器
    */
-  public add(target: LoadingTarget = "body") {
-    // 创建loading，如果hasLoading为true，表示已经添加了loading样式，无需重复添加
+  public add(config?: LoadingConfig) {
+    const { target, loadingText } = {
+      ...this.globalConfig,
+      ...config,
+    };
+    // 创建loading，如果hasInit为true，表示已经添加了loading样式，无需重复添加
     const loading = new Loading(
       this.generateContainer(target),
-      !this.hasLoading
+      loadingText,
+      this.hasInit
     );
-    this.hasLoading = true;
     const loadingItem = this.loadingMap.get(loading.container);
     if (loadingItem) {
       loadingItem.count++;
@@ -159,15 +173,18 @@ class LoadingManager {
     }
     this.addContainer(loading.container, loading);
     loading.start();
-    debugger;
   }
 
   /**
    * 移除 loading
    * @param target loading 的容器
    */
-  public remove(_target?: LoadingTarget) {
-    const container = this.generateContainer(_target);
+  public remove(config?: LoadingConfig) {
+    const { target } = {
+      ...this.globalConfig,
+      ...config,
+    };
+    const container = this.generateContainer(target);
     const loadingItem = this.loadingMap?.get(container);
     if (loadingItem) {
       loadingItem.count--;
@@ -176,7 +193,6 @@ class LoadingManager {
         this.removeContainer(container);
       }
     }
-    debugger;
   }
 
   /**
@@ -194,6 +210,11 @@ class LoadingManager {
     });
     this.clearContainer();
   }
-}
 
-export default LoadingManager;
+  public updateConfig(config: Partial<LoadingConfig>): void {
+    this.globalConfig = {
+      ...this.globalConfig,
+      ...config,
+    };
+  }
+}

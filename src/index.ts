@@ -5,7 +5,7 @@ import axios, {
   InternalAxiosRequestConfig as AxiosInternalRequestConfig,
 } from "axios";
 import { CacheManager } from "./cache-manager";
-import LoadingManager, { LoadingTarget } from "./loading";
+import LoadingManager, { LoadingTarget } from "./loading-manager";
 
 type Prettify<T> = {
   [K in keyof T]: T[K];
@@ -29,20 +29,21 @@ export type RequestConfig = Prettify<
     cache?: boolean;
     /** 缓存有效期（毫秒） */
     cacheTime?: number;
-    /** 请求显示loading */
+    /** 是否默认显示loading */
     loading?: LoadingConfig;
   }
 >;
 
-// 添加 loading 样式
-const style = document.createElement("style");
-style.textContent = `
-  @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
-  }
-`;
-document.head.appendChild(style);
+const defaultConfig: RequestConfig = {
+  /** 默认请求错误重试 */
+  retry: 3,
+  retryDelay: 1000,
+  /** 默认开启缓存 */
+  cache: true,
+  cacheTime: 1000 * 60 * 5,
+  /** 默认显示loading */
+  loading: true,
+};
 
 export interface RequestInstance extends AxiosInstance {
   get<T = any>(url: string, config?: RequestConfig): Promise<T>;
@@ -53,12 +54,15 @@ export interface RequestInstance extends AxiosInstance {
 
 export class TuxinRequest {
   public instance: RequestInstance;
+  /** 全局配置 */
   private globalConfig: RequestConfig;
+  /** 缓存管理 */
   private cacheManager: CacheManager;
+  /** loading管理 */
   private loadingManager: LoadingManager;
 
   constructor(config: RequestConfig) {
-    this.globalConfig = config;
+    this.globalConfig = { ...defaultConfig, ...config };
     this.instance = axios.create(config) as RequestInstance;
     this.cacheManager = new CacheManager();
     this.loadingManager = new LoadingManager();
@@ -73,48 +77,44 @@ export class TuxinRequest {
     );
   }
 
-  protected defaultRequestHandler(config: InternalAxiosRequestConfig) {
+  protected defaultRequestHandler = (config: InternalAxiosRequestConfig) => {
+    console.log(
+      "🚀 ~ TuxinRequest ~ defaultRequestHandler ~ config.loading:",
+      config.loading
+    );
     if (config.loading) {
       this.loadingManager.add(config.loading === true ? "" : config.loading);
     }
     return config;
-  }
+  };
 
-  protected defaultRequestErrorHandler(error: any) {
+  protected defaultRequestErrorHandler = (error: any) => {
     // 关闭 loading
     if (error.config?.loading) {
       this.loadingManager.remove(
         error.config.loading === true ? "" : error.config.loading
       );
     }
-  }
+  };
 
-  protected defaultResponseHandler(response: AxiosResponse) {
+  protected defaultResponseHandler = (response: AxiosResponse) => {
     const { data, status } = response;
+    const config = response.config as RequestConfig;
+    this.stopLoading(config);
+
     if (status >= 200 && status < 300) {
       return data;
     }
     return Promise.reject(new Error("请求失败"));
-  }
+  };
 
-  protected async defaultErrorHandler(error: any) {
+  protected defaultErrorHandler = async (error: any) => {
     const config = error.config as RequestConfig;
 
-    // 关闭 loading
-    if (config?.loading) {
-      this.loadingManager.remove(config.loading === true ? "" : config.loading);
-    }
+    this.stopLoading(config);
 
-    // 处理重试
-    if (config?.retry) {
-      config.retryCount = config.retryCount || 0;
-      if (config.retryCount < config.retry) {
-        config.retryCount++;
-        const delay = config.retryDelay || 1000;
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return this.instance(config);
-      }
-    }
+    const res = await this.retry(config);
+    if (res) return res;
 
     // 错误处理
     if (error.response) {
@@ -136,9 +136,76 @@ export class TuxinRequest {
       }
     }
     return Promise.reject(error);
+  };
+
+  /**
+   * 重试
+   * @param config
+   */
+  retry(config: RequestConfig) {
+    // 处理重试
+    const retry =
+      typeof config?.retry === "number"
+        ? config.retry
+        : this.globalConfig.retry;
+    if (retry) {
+      config.retryCount = config.retryCount || 0;
+      if (config.retryCount < retry) {
+        config.retryCount++;
+        const delay =
+          typeof config.retryDelay === "number"
+            ? config.retryDelay
+            : this.globalConfig.retryDelay;
+        return new Promise((resolve) => setTimeout(resolve, delay)).then(() =>
+          this.instance(config)
+        );
+      }
+    }
   }
 
-  public get<T = any>(url: string, config?: RequestConfig): Promise<T> {
+  /**
+   * 开始 loading
+   * @param config
+   */
+  startLoading(config: RequestConfig) {
+    const loading =
+      typeof config?.loading === "undefined"
+        ? this.globalConfig.loading
+        : config.loading;
+    if (loading) {
+      this.loadingManager.add(loading === true ? "" : loading);
+    }
+  }
+
+  /**
+   * 停止 loading
+   * @param config
+   */
+  stopLoading(config: RequestConfig) {
+    const loading =
+      typeof config?.loading === "undefined"
+        ? this.globalConfig.loading
+        : config.loading;
+    if (loading) {
+      this.loadingManager.remove(loading === true ? "" : loading);
+    }
+  }
+
+  /**
+   * 清除所有 loading
+   */
+  clearLoading() {
+    this.loadingManager.clear();
+  }
+
+  /**
+   * 清除所有缓存
+   */
+  clearCache() {
+    this.cacheManager.clear();
+  }
+
+  public async get<T = any>(url: string, config?: RequestConfig): Promise<T> {
     // 获取缓存
     const cacheKey = this.cacheManager.generateKey(
       "GET",
@@ -156,7 +223,7 @@ export class TuxinRequest {
     });
   }
 
-  public post<T = any>(
+  public async post<T = any>(
     url: string,
     data?: any,
     config?: RequestConfig
@@ -178,7 +245,7 @@ export class TuxinRequest {
     });
   }
 
-  public patch<T = any>(
+  public async patch<T = any>(
     url: string,
     data?: any,
     config?: RequestConfig
@@ -186,7 +253,7 @@ export class TuxinRequest {
     return this.instance.patch(url, data, config);
   }
 
-  public put<T = any>(
+  public async put<T = any>(
     url: string,
     data?: any,
     config?: RequestConfig
@@ -194,11 +261,10 @@ export class TuxinRequest {
     return this.instance.put(url, data, config);
   }
 
-  public delete<T = any>(url: string, config?: RequestConfig): Promise<T> {
+  public async delete<T = any>(
+    url: string,
+    config?: RequestConfig
+  ): Promise<T> {
     return this.instance.delete(url, config);
-  }
-
-  public clearCache(): void {
-    this.cacheManager.clear();
   }
 }

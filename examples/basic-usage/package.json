@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Browser usage demo for tuxin-request",
   "scripts": {
-    "start": "vite"
+    "dev": "vite",
+    "build": "vite build"
   },
   "dependencies": {
     "tuxin-request": "file:../../"

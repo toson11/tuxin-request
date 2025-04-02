@@ -6,6 +6,7 @@ import axios, {
 } from "axios";
 import { CacheManager } from "./cache-manager";
 import LoadingManager, { LoadingTarget } from "./loading-manager";
+import { CryptoManager, CryptoConfig } from "./crypto-manager";
 
 type Prettify<T> = {
   [K in keyof T]: T[K];
@@ -42,10 +43,8 @@ export type RequestConfig<T = any> = Prettify<
     requestHandler?: (config: InternalAxiosRequestConfig) => Promise<any>;
     /** 请求错误处理 */
     requestErrorHandler?: (error: any) => Promise<any>;
-    // /** 上传进度回调 */
-    // onUploadProgress?: (progressEvent: ProgressEvent) => void;
-    // /** 下载进度回调 */
-    // onDownloadProgress?: (progressEvent: ProgressEvent) => void;
+    /** 加密配置 */
+    crypto?: CryptoConfig;
   }
 >;
 
@@ -85,6 +84,8 @@ class TuxinRequest {
   private cacheManager: CacheManager;
   /** loading管理 */
   private loadingManager: LoadingManager;
+  /** 加密管理 */
+  private cryptoManager: CryptoManager;
   /** 存储pending的请求 */
   private pendingRequests: Map<string, AbortController> = new Map();
 
@@ -93,6 +94,7 @@ class TuxinRequest {
     this.instance = axios.create(config) as RequestInstance;
     this.cacheManager = new CacheManager();
     this.loadingManager = new LoadingManager();
+    this.cryptoManager = new CryptoManager(config.crypto || { enabled: false });
     this.init();
   }
 
@@ -133,6 +135,11 @@ class TuxinRequest {
     }
     this.startLoading(config);
 
+    // 处理请求数据加密
+    if (config.data && config.crypto?.enabled) {
+      config.data = this.cryptoManager.encrypt(config.data);
+    }
+
     // 支持自定义每个请求的请求处理
     if (config.requestHandler) {
       await config.requestHandler(config);
@@ -157,6 +164,11 @@ class TuxinRequest {
     const config = this.normalizeConfig(response.config);
     const { data } = response;
     this.requestFinish(config);
+
+    // 处理响应数据解密
+    if (data && config.crypto?.enabled) {
+      response.data = this.cryptoManager.decrypt(data);
+    }
 
     // 支持自定义每个请求的响应成功处理
     if (config.responseSuccessHandler) {
@@ -353,6 +365,14 @@ class TuxinRequest {
     config?: RequestConfig<T>
   ): Promise<T> {
     return this.instance.delete(url, config);
+  }
+
+  /**
+   * 更新加密配置
+   * @param config 新的加密配置
+   */
+  public updateCryptoConfig(config: Partial<CryptoConfig>): void {
+    this.cryptoManager.updateConfig(config);
   }
 }
 

@@ -1,12 +1,13 @@
 import { SensitiveConfig } from "@/types";
 
+type Config = Exclude<SensitiveConfig, boolean>;
 export class SensitiveManager {
-  private globalConfig: SensitiveConfig;
+  private globalConfig: Config;
 
-  constructor(config?: SensitiveConfig) {
+  constructor(config?: Config) {
     this.globalConfig = {
       rules: [],
-      ...(config || {}),
+      ...config,
     };
   }
 
@@ -79,7 +80,7 @@ export class SensitiveManager {
    * @param data 要脱敏的数据
    * @returns 脱敏后的数据
    */
-  public desensitize(data: any, config?: SensitiveConfig): any {
+  public desensitize(data: any, config?: Config): any {
     const { rules } = {
       ...this.globalConfig,
       ...config,
@@ -129,7 +130,7 @@ export class SensitiveManager {
    * 更新配置
    * @param config 新的配置
    */
-  public updateConfig(config: Partial<SensitiveConfig>): void {
+  public updateConfig(config: Partial<Config>): void {
     this.globalConfig = {
       ...this.globalConfig,
       ...config,

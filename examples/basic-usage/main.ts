@@ -1,5 +1,5 @@
-import TuxinRequest from "../../src/index";
-// import { TuxinRequest } from 'tuxin-request';
+import { LoadingConfig, RetryConfig, TuxinRequest } from "../../src";
+// import { TuxinRequest } from "tuxin-request";
 
 // 创建请求实例
 const request = new TuxinRequest({
@@ -18,32 +18,30 @@ function showResult(title: string, data: unknown): void {
   }
 }
 
-// 获取文章列表
-export async function getPosts(
-  page: number = 1,
-  limit: number = 10
-): Promise<void> {
+// 无loading
+export async function getPostsWithoutLoading(): Promise<void> {
   try {
     const response = await request.get("/posts", {
-      loading: true,
+      loading: false,
       params: {
-        _page: page,
-        _limit: limit,
+        _page: 1,
+        _limit: 5,
       },
     });
-    showResult(`获取第 ${page} 页文章列表成功：`, response);
+    showResult(`获取文章列表成功：`, response);
   } catch (error) {
     console.log("🚀 ~ getPosts ~ error:", error);
     showResult("获取文章列表失败：", error);
   }
 }
 
-// 获取单个文章（带缓存）
-export async function getPostWithCache(id: number): Promise<void> {
+// 缓存
+export async function getPostWithCache(): Promise<void> {
   try {
-    const response = await request.get(`/posts/${id}`, {
-      cache: true,
-      cacheTime: 5000,
+    const response = await request.get(`/posts/1`, {
+      cache: {
+        cacheTime: 5000,
+      },
     });
     showResult("获取文章（带缓存）成功：", response);
   } catch (error) {
@@ -51,26 +49,11 @@ export async function getPostWithCache(id: number): Promise<void> {
   }
 }
 
-// 创建新文章
-export async function createPost(): Promise<void> {
+// 无重试
+export async function getUserWithoutRetry(): Promise<void> {
   try {
-    const response = await request.post("/posts", {
-      title: "foo",
-      body: "bar",
-      userId: 1,
-    });
-    showResult("创建文章成功：", response);
-  } catch (error) {
-    showResult("创建文章失败：", error);
-  }
-}
-
-// 获取用户（带重试）
-export async function getUserWithRetry(id: number): Promise<void> {
-  try {
-    const response = await request.get(`/users/${id}`, {
-      retry: 3,
-      retryDelay: 1000,
+    const response = await request.get(`/users/1`, {
+      retry: false,
     });
     showResult("获取用户成功：", response);
   } catch (error) {
@@ -78,17 +61,67 @@ export async function getUserWithRetry(id: number): Promise<void> {
   }
 }
 
-// 将方法挂载到 window 上
-declare global {
-  interface Window {
-    getPosts: typeof getPosts;
-    getPostWithCache: typeof getPostWithCache;
-    createPost: typeof createPost;
-    getUserWithRetry: typeof getUserWithRetry;
+// 脱敏
+export async function getUserWithSensitive(): Promise<void> {
+  try {
+    const response = await request.get("/users/1", {
+      retry: false,
+      sensitive: true,
+    });
+    showResult("获取用户脱敏成功：", response);
+  } catch (error) {
+    showResult("获取用户失败：", error);
   }
 }
 
-window.getPosts = getPosts;
+// 加密
+export async function getUserWithCrypto(): Promise<void> {
+  try {
+    const response = await request.get("/users/1", {
+      crypto: true,
+    });
+    showResult("获取用户加密成功：", response);
+  } catch (error) {
+    showResult("获取用户失败：", error);
+  }
+}
+
+// 重复请求
+export async function createPostWithDuplicated(): Promise<void> {
+  try {
+    const response = await request.post(
+      "/posts",
+      {
+        title: "foo",
+        body: "bar",
+        userId: 1,
+      },
+      {
+        retry: false,
+        loading: false,
+      }
+    );
+    showResult("创建文章成功：", response);
+  } catch (error) {
+    showResult("创建文章失败：", error);
+  }
+}
+
+// 将方法挂载到 window 上
+declare global {
+  interface Window {
+    getPostsWithoutLoading: typeof getPostsWithoutLoading;
+    getPostWithCache: typeof getPostWithCache;
+    createPostWithDuplicated: typeof createPostWithDuplicated;
+    getUserWithoutRetry: typeof getUserWithoutRetry;
+    getUserWithSensitive: typeof getUserWithSensitive;
+    getUserWithCrypto: typeof getUserWithCrypto;
+  }
+}
+
+window.getPostsWithoutLoading = getPostsWithoutLoading;
 window.getPostWithCache = getPostWithCache;
-window.createPost = createPost;
-window.getUserWithRetry = getUserWithRetry;
+window.createPostWithDuplicated = createPostWithDuplicated;
+window.getUserWithoutRetry = getUserWithoutRetry;
+window.getUserWithSensitive = getUserWithSensitive;
+window.getUserWithCrypto = getUserWithCrypto;

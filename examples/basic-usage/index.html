@@ -36,10 +36,18 @@
     <div class="container">
         <h1>Tuxin Request 测试</h1>
         <div>
-            <button class="btn" onclick="getPosts(1, 5)">获取文章列表</button>
-            <button class="btn" onclick="getPostWithCache(1)">获取文章(带缓存)</button>
-            <button class="btn" onclick="createPost()">创建文章</button>
-            <button class="btn" onclick="getUserWithRetry(1)">获取用户(带重试)</button>
+            <!-- loading -->
+            <button class="btn" onclick="getPostsWithoutLoading()">获取文章列表(不带loading)</button>
+            <!-- 缓存 -->
+            <button class="btn" onclick="getPostWithCache()">获取文章(带缓存)</button>
+            <!-- 重复请求 -->
+            <button class="btn" onclick="createPostWithDuplicated()">创建文章(重复请求)</button>
+            <!-- 脱敏 -->
+            <button class="btn" onclick="getUserWithSensitive()">获取用户(带脱敏)</button>
+            <!-- 重试 -->
+            <button class="btn" onclick="getUserWithoutRetry()">获取用户(不带重试)</button>
+            <!-- 加密 -->
+            <button class="btn" onclick="getUserWithCrypto()">获取用户(加密)</button>
         </div>
         <pre id="result">// 结果将显示在这里...</pre>
     </div>

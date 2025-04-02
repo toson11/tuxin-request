@@ -1,14 +1,15 @@
 import { DuplicatedConfig } from "@/types";
 
+type Config = Exclude<DuplicatedConfig, boolean>;
 export class DuplicatedManager {
-  private globalConfig: DuplicatedConfig;
+  private globalConfig: Exclude<Config, boolean>;
   /** 存储pending的请求 */
   private pendingRequests: Map<
     string,
     { controller: AbortController; timeout: NodeJS.Timeout }
   > = new Map();
 
-  constructor(config: DuplicatedConfig = {}) {
+  constructor(config: Config = {}) {
     this.globalConfig = {
       timeout: 5000,
       ...config,
@@ -19,11 +20,11 @@ export class DuplicatedManager {
    * 添加pending请求
    */
   public add(requestKey: string, controller: AbortController): void {
+    this.cancel(requestKey);
     this.pendingRequests.set(requestKey, {
       controller,
       timeout: setTimeout(() => {
-        controller.abort();
-        this.pendingRequests.delete(requestKey);
+        this.remove(requestKey);
       }, this.globalConfig.timeout),
     });
   }
@@ -32,6 +33,7 @@ export class DuplicatedManager {
    * 取消请求
    */
   public cancel(requestKey: string): void {
+    if (!this.pendingRequests.has(requestKey)) return;
     const { controller, timeout } = this.pendingRequests.get(requestKey)!;
     controller?.abort();
     clearTimeout(timeout);
@@ -59,7 +61,7 @@ export class DuplicatedManager {
   /**
    * 更新配置
    */
-  public updateConfig(config: DuplicatedConfig): void {
+  public updateConfig(config: Config): void {
     this.globalConfig = {
       ...this.globalConfig,
       ...config,

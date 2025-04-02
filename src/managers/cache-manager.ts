@@ -1,13 +1,15 @@
 import { CacheConfig, CacheItem } from "@/types";
 
 export const DEFAULT_CACHE_TIME = 5000;
+type Config = Exclude<CacheConfig, boolean>;
 export class CacheManager {
   private cache = new Map<string, CacheItem<any>>();
-  private globalConfig: CacheConfig;
-  constructor(config?: CacheConfig) {
+  private globalConfig: Config;
+  constructor(config?: Config) {
+    const configObj = typeof config === "object" ? config : {};
     this.globalConfig = {
       cacheTime: DEFAULT_CACHE_TIME,
-      ...(config || {}),
+      ...configObj,
     };
   }
 
@@ -35,8 +37,13 @@ export class CacheManager {
    * @param data 缓存数据
    * @param config 单独自定义缓存配置
    */
-  public set<T>(key: string, data: T, config: CacheConfig = {}): void {
-    const { cacheTime } = { ...this.globalConfig, ...config };
+  public set<T>(key: string, data: T, config: Config = {}): void {
+    const configObj = typeof config === "object" ? config : {};
+    const mergedConfig = {
+      ...this.globalConfig,
+      ...configObj,
+    };
+    const { cacheTime } = mergedConfig;
 
     this.cache.set(key, {
       data,
@@ -52,7 +59,7 @@ export class CacheManager {
     this.cache.delete(key);
   }
 
-  public updateConfig(config: Partial<CacheConfig>): void {
+  public updateConfig(config: Partial<Config>): void {
     this.globalConfig = {
       ...this.globalConfig,
       ...config,

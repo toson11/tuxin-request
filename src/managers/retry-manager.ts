@@ -1,9 +1,11 @@
+import { handleBooleanToConfig } from "@/core/utils";
 import { InternalAxiosRequestConfig, RetryConfig } from "@/types";
 
+type Config = Exclude<RetryConfig, boolean>;
 export class RetryManager {
-  private globalConfig: RetryConfig;
+  private globalConfig: Config;
 
-  constructor(config?: RetryConfig) {
+  constructor(config?: Config) {
     this.globalConfig = {
       count: 3,
       delay: 500,
@@ -15,7 +17,7 @@ export class RetryManager {
    * 更新重试配置
    * @param config 新的重试配置
    */
-  public updateConfig(config: Partial<RetryConfig>): void {
+  public updateConfig(config: Partial<Config>): void {
     this.globalConfig = {
       ...this.globalConfig,
       ...config,
@@ -35,7 +37,7 @@ export class RetryManager {
   ): Promise<any> {
     const retry = {
       ...this.globalConfig,
-      ...(config?.retry || {}),
+      ...handleBooleanToConfig(config?.retry),
     };
     if (typeof retry.count === "number") {
       config.retryCount = config.retryCount || 0;

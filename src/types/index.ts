@@ -8,26 +8,22 @@ export type Prettify<T> = {
   [K in keyof T]: T[K];
 } & {};
 
-export type EnableConfig<T> = T & {
-  enabled: boolean;
-};
-
 export type RequestConfig<T = any> = Prettify<
   AxiosRequestConfig & {
     /** 请求失败后的重试次数，默认 3 次 */
-    retry?: EnableConfig<RetryConfig>;
+    retry?: boolean | RetryConfig;
     /** 当前重试次数（内部使用） */
     retryCount?: number;
     /** 加密配置 */
-    crypto?: EnableConfig<CryptoConfig>;
+    crypto?: boolean | CryptoConfig;
     /** 脱敏配置 */
-    sensitive?: EnableConfig<SensitiveConfig>;
+    sensitive?: boolean | SensitiveConfig;
     /** 是否启用请求缓存，默认 true */
-    cache?: EnableConfig<CacheConfig>;
+    cache?: boolean | CacheConfig;
     /** 是否显示loading，默认 true */
-    loading?: EnableConfig<LoadingConfig>;
+    loading?: boolean | LoadingConfig;
     /** 重复请求配置 */
-    duplicated?: EnableConfig<DuplicatedConfig>;
+    duplicated?: boolean | DuplicatedConfig;
     /** 响应错误处理 */
     responseErrorHandler?: (errorResponse: AxiosResponse) => Promise<any>;
     /** 响应成功处理 */
@@ -37,6 +33,11 @@ export type RequestConfig<T = any> = Prettify<
     /** 请求错误处理 */
     requestErrorHandler?: (error: any) => Promise<any>;
   }
+>;
+
+export type RequestConfigWithoutCache<T = any> = Omit<
+  RequestConfig<T>,
+  "cache"
 >;
 
 export type InternalAxiosRequestConfig<T = any> = AxiosInternalRequestConfig &
@@ -60,47 +61,59 @@ export type SensitiveRule = {
 };
 
 /** 脱敏配置 */
-export interface SensitiveConfig {
-  /** 脱敏规则列表 */
-  rules?: SensitiveRule[];
-}
+export type SensitiveConfig =
+  | {
+      /** 脱敏规则列表 */
+      rules?: SensitiveRule[];
+    }
+  | boolean;
 
-export type RetryConfig = {
-  count?: number;
-  delay?: number;
-  /** 重试前回调 */
-  beforeRetry?: (error: any, retryCount: number) => Promise<any>;
-};
+export type RetryConfig =
+  | {
+      count?: number;
+      delay?: number;
+      /** 重试前回调 */
+      beforeRetry?: (error: any, retryCount: number) => Promise<any>;
+    }
+  | boolean;
 
-export interface DuplicatedConfig {
-  /** 请求超时时间，默认 5000ms */
-  timeout?: number;
-}
+export type DuplicatedConfig =
+  | {
+      /** 请求超时时间，默认 5000ms */
+      timeout?: number;
+    }
+  | boolean;
 
 export type EncryptAlgorithm = "AES" | "DES" | "RC4";
 
-export interface CryptoConfig {
-  /** 加密算法 */
-  algorithm?: EncryptAlgorithm;
-  /** 密钥 */
-  key?: string;
-  /** 加密模式 */
-  mode?: (typeof CryptoJS.mode)[keyof typeof CryptoJS.mode];
-  /** 填充方式 */
-  padding?: (typeof CryptoJS.pad)[keyof typeof CryptoJS.pad];
-}
+export type CryptoConfig =
+  | {
+      /** 加密算法 */
+      algorithm?: EncryptAlgorithm;
+      /** 密钥 */
+      key?: string;
+      /** 加密模式 */
+      mode?: (typeof CryptoJS.mode)[keyof typeof CryptoJS.mode];
+      /** 填充方式 */
+      padding?: (typeof CryptoJS.pad)[keyof typeof CryptoJS.pad];
+    }
+  | boolean;
 
 export interface CacheItem<T> {
   data: T;
   expireTime: number;
 }
 
-export interface CacheConfig {
-  cacheTime?: number;
-}
+export type CacheConfig =
+  | {
+      cacheTime?: number;
+    }
+  | boolean;
 
 export type LoadingTarget = string | HTMLElement;
-export type LoadingConfig = {
-  target?: LoadingTarget;
-  loadingText?: string;
-};
+export type LoadingConfig =
+  | {
+      target?: LoadingTarget;
+      loadingText?: string;
+    }
+  | boolean;

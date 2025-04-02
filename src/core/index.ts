@@ -1,6 +1,10 @@
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import { mergeConfig as axiosMergeConfig } from "axios";
-import { InternalAxiosRequestConfig, RequestConfig } from "@/types";
+import {
+  InternalAxiosRequestConfig,
+  RequestConfig,
+  RequestConfigWithoutCache,
+} from "@/types";
 import {
   CacheManager,
   LoadingManager,
@@ -9,34 +13,15 @@ import {
   RetryManager,
   DuplicatedManager,
 } from "@/managers";
+import { handleBooleanToConfig } from "./utils";
 
 const defaultConfig: RequestConfig = {
-  retry: {
-    enabled: true,
-  },
-  cache: {
-    enabled: true,
-  },
-  loading: {
-    enabled: true,
-  },
-  duplicated: {
-    enabled: true,
-  },
-  sensitive: {
-    enabled: false,
-  },
-  crypto: {
-    enabled: false,
-  },
-  /** 默认响应成功处理 */
-  responseSuccessHandler: async (response) => {
-    const { data } = response;
-    if (data.code >= 200 && data.code < 300) {
-      return data.data;
-    }
-    return Promise.reject(data);
-  },
+  retry: true,
+  loading: true,
+  duplicated: true,
+  cache: false,
+  sensitive: false,
+  crypto: false,
 };
 
 export interface RequestInstance extends AxiosInstance {
@@ -46,7 +31,23 @@ export interface RequestInstance extends AxiosInstance {
   delete<T = any>(url: string, config?: RequestConfig): Promise<T>;
 }
 
-class TuxinRequest {
+class CacheHitError extends Error {
+  constructor(public data: any) {
+    super("Cache hit");
+    this.name = "CacheHitError";
+  }
+}
+
+let originUrl = "";
+
+/** 是否可以缓存 */
+const canCache = (config: InternalAxiosRequestConfig) => {
+  return (
+    config.cache && ["get", "post"].includes(config.method?.toLowerCase() || "")
+  );
+};
+
+export class TuxinRequest {
   public instance: RequestInstance;
   /** 全局配置，不允许外部直接修改 */
   private globalConfig: RequestConfig;
@@ -63,19 +64,22 @@ class TuxinRequest {
   /** 重复请求管理 */
   public duplicatedManager: DuplicatedManager;
 
-  constructor(config: RequestConfig) {
+  constructor(config: RequestConfigWithoutCache) {
     this.globalConfig = axiosMergeConfig(defaultConfig, config);
     this.instance = axios.create(this.globalConfig) as RequestInstance;
 
     // 功能模块初始化
-    const { cache, crypto, sensitive, retry, duplicated, loading } =
-      this.globalConfig;
-    this.cacheManager = new CacheManager(cache);
-    this.loadingManager = new LoadingManager(loading);
-    this.cryptoManager = new CryptoManager(crypto);
-    this.sensitiveManager = new SensitiveManager(sensitive);
-    this.retryManager = new RetryManager(retry);
-    this.duplicatedManager = new DuplicatedManager(duplicated);
+    const { crypto, sensitive, retry, duplicated, loading } = this.globalConfig;
+    this.cacheManager = new CacheManager();
+    this.loadingManager = new LoadingManager(handleBooleanToConfig(loading));
+    this.cryptoManager = new CryptoManager(handleBooleanToConfig(crypto));
+    this.sensitiveManager = new SensitiveManager(
+      handleBooleanToConfig(sensitive)
+    );
+    this.retryManager = new RetryManager(handleBooleanToConfig(retry));
+    this.duplicatedManager = new DuplicatedManager(
+      handleBooleanToConfig(duplicated)
+    );
 
     // 拦截器初始化
     this.instance.interceptors.request.use(this.requestHandler);
@@ -97,45 +101,106 @@ class TuxinRequest {
 
   /** 更新全局配置 */
   public updateConfig(config: Partial<RequestConfig>): void {
-    config.retry && this.retryManager.updateConfig(config.retry);
-    config.crypto && this.cryptoManager.updateConfig(config.crypto);
-    config.sensitive && this.sensitiveManager.updateConfig(config.sensitive);
-    config.cache && this.cacheManager.updateConfig(config.cache);
-    config.duplicated && this.duplicatedManager.updateConfig(config.duplicated);
-    config.loading && this.loadingManager.updateConfig(config.loading);
+    this.retryManager.updateConfig(handleBooleanToConfig(config.retry));
+    this.cryptoManager.updateConfig(handleBooleanToConfig(config.crypto));
+    this.sensitiveManager.updateConfig(handleBooleanToConfig(config.sensitive));
+    this.cacheManager.updateConfig(handleBooleanToConfig(config.cache));
+    this.duplicatedManager.updateConfig(
+      handleBooleanToConfig(config.duplicated)
+    );
+    this.loadingManager.updateConfig(handleBooleanToConfig(config.loading));
   }
 
   /** 请求结束回调 */
-  protected requestFinish = async (config: InternalAxiosRequestConfig) => {
-    if (config.loading?.enabled) {
-      this.loadingManager.remove(config.loading);
+  protected onFinish = async (
+    response: AxiosResponse,
+    isSuccess: boolean = false
+  ) => {
+    const config = this.mergeConfig(response.config);
+    if (config.loading) {
+      this.loadingManager.remove(handleBooleanToConfig(config.loading));
     }
-    if (config.duplicated?.enabled) {
+    if (config.duplicated) {
       const requestKey = this.generateRequestKey(config);
       this.duplicatedManager.remove(requestKey);
+    }
+    if (isSuccess) {
+      if (config.sensitive) {
+        // 脱敏
+        this.sensitiveManager.desensitize(
+          config.data,
+          handleBooleanToConfig(config.sensitive)
+        );
+      }
+      if (config.crypto) {
+        // 解密
+        this.cryptoManager.decrypt(
+          config.data,
+          handleBooleanToConfig(config.crypto)
+        );
+      }
+      if (canCache(config)) {
+        // 缓存，必须放到最后，否则会影响脱敏和解密
+        const requestKey = this.generateRequestKey(config);
+        this.cacheManager.set(
+          requestKey,
+          response.data,
+          handleBooleanToConfig(config.cache)
+        );
+      }
     }
   };
 
   /** 请求拦截器 */
   protected requestHandler = async (_config: InternalAxiosRequestConfig) => {
     const config = this.mergeConfig(_config);
-    if (config.duplicated?.enabled) {
+
+    if (canCache(config)) {
+      const requestKey = this.generateRequestKey(config);
+      const cache = this.cacheManager.get(requestKey);
+      if (cache) {
+        debugger;
+        // TODO: 为什么不生效
+        throw new CacheHitError(cache);
+      }
+    }
+
+    if (config.duplicated) {
       const requestKey = this.generateRequestKey(config);
       this.duplicatedManager.cancel(requestKey);
       const controller = new AbortController();
       config.signal = controller.signal;
       this.duplicatedManager.add(requestKey, controller);
     }
-    this.loadingManager.add(config.loading);
 
-    // 支持自定义每个请求的请求处理
+    if (config.loading) {
+      this.loadingManager.add(handleBooleanToConfig(config.loading));
+    }
+
+    // 支持自定义每个请求的请求处理，必须在加密和脱敏之前
     if (config.requestHandler) {
       await config.requestHandler(config);
     }
 
     // 处理请求数据加密
-    if (config.data && config.crypto?.enabled) {
+    if (config.data && config.crypto) {
       config.data = this.cryptoManager.encrypt(config.data);
+    }
+
+    // TODO: 测试重试
+    if (config.url?.includes("users")) {
+      if (
+        (config.retryCount || 0)! <
+        (handleBooleanToConfig(config.retry)?.count || 3)
+      ) {
+        // 如果retryCount为0，则记录originUrl
+        if (!config.retryCount) originUrl = config.url || "";
+        // 请求404接口
+        config.url = "/users/1ddd";
+      } else {
+        // @ts-ignore
+        config.url = originUrl;
+      }
     }
 
     return config;
@@ -143,8 +208,12 @@ class TuxinRequest {
 
   /** 请求错误拦截器 */
   protected requestErrorHandler = (error: any) => {
+    console.log("🚀 ~ TuxinRequest ~ error:", error);
+    if (error instanceof CacheHitError) {
+      return Promise.resolve(error.data);
+    }
     const config = this.mergeConfig(error.config);
-    this.requestFinish(config);
+    this.onFinish(error);
 
     // 支持自定义每个请求的请求错误处理
     if (config.requestErrorHandler) {
@@ -158,17 +227,7 @@ class TuxinRequest {
   protected responseSuccessHandler = (response: AxiosResponse) => {
     const config = this.mergeConfig(response.config);
     const { data } = response;
-    this.requestFinish(config);
-
-    // 处理响应数据解密
-    if (data && config.crypto?.enabled) {
-      response.data = this.cryptoManager.decrypt(data);
-    }
-
-    // 处理响应数据脱敏
-    if (data && config.sensitive?.enabled) {
-      response.data = this.sensitiveManager.desensitize(data);
-    }
+    this.onFinish(response, true);
 
     // 支持自定义每个请求的响应成功处理
     if (config.responseSuccessHandler) {
@@ -182,15 +241,18 @@ class TuxinRequest {
   /** 响应错误拦截器 */
   protected responseErrorHandler = async (error: any) => {
     const config = this.mergeConfig(error.config);
-
-    this.requestFinish(config);
-
     const retryResult = await this.retryManager.handleRetry(
       error,
       config,
       this.instance
     );
-    if (retryResult) return retryResult;
+
+    if (retryResult) {
+      this.onFinish(error);
+      return retryResult;
+    }
+
+    this.onFinish(error);
 
     // 自定义错误处理
     if (config.responseErrorHandler) {
@@ -204,56 +266,33 @@ class TuxinRequest {
   /**
    * 生成请求的唯一标识
    */
-  public generateRequestKey(config: any): string {
+  public generateRequestKey(config: InternalAxiosRequestConfig): string {
     const { method, url, params, data } = config;
     const paramsString = params ? JSON.stringify(params) : "";
     const dataString = data ? JSON.stringify(data) : "";
-    return `${method}:${url}:${paramsString}:${dataString}`;
+    const key = `${method}:${url}:${paramsString}:${dataString}`;
+    return key;
   }
 
-  public async get<T = any>(url: string, config?: RequestConfig): Promise<T> {
-    // 获取缓存
-    const requestKey = this.generateRequestKey({
-      ...(config || {}),
-      method: "GET",
-      url,
-    });
-    const cache = this.cacheManager.get<T>(requestKey);
-    if (cache) return Promise.resolve(cache);
-
-    return this.instance.get(url, config).then((response) => {
-      // 缓存请求结果
-      this.cacheManager.set(requestKey, response);
-      return response;
-    });
+  public async get<T = any>(
+    url: string,
+    config?: RequestConfig<T>
+  ): Promise<T> {
+    return this.instance.get(url, config);
   }
 
   public async post<T = any>(
     url: string,
     data?: any,
-    config?: RequestConfig
+    config?: RequestConfig<T>
   ): Promise<T> {
-    // 获取缓存
-    const requestKey = this.generateRequestKey({
-      ...(config || {}),
-      method: "POST",
-      url,
-      data,
-    });
-    const cache = this.cacheManager.get<T>(requestKey);
-    if (cache) return Promise.resolve(cache);
-
-    return this.instance.post(url, data, config).then((response) => {
-      // 缓存请求结果
-      this.cacheManager.set(requestKey, response);
-      return response;
-    });
+    return this.instance.post(url, data, config);
   }
 
   public async patch<T = any>(
     url: string,
     data?: any,
-    config?: RequestConfig<T>
+    config?: RequestConfigWithoutCache<T>
   ): Promise<T> {
     return this.instance.patch(url, data, config);
   }
@@ -261,17 +300,15 @@ class TuxinRequest {
   public async put<T = any>(
     url: string,
     data?: any,
-    config?: RequestConfig<T>
+    config?: RequestConfigWithoutCache<T>
   ): Promise<T> {
     return this.instance.put(url, data, config);
   }
 
   public async delete<T = any>(
     url: string,
-    config?: RequestConfig<T>
+    config?: RequestConfigWithoutCache<T>
   ): Promise<T> {
     return this.instance.delete(url, config);
   }
 }
-
-export default TuxinRequest;

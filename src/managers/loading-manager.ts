@@ -1,5 +1,4 @@
 import { LoadingConfig, LoadingTarget } from "@/types";
-
 export class Loading {
   public el: HTMLElement | null = null;
   public container: HTMLElement;
@@ -93,6 +92,7 @@ export class Loading {
     }
   }
 }
+type Config = Exclude<LoadingConfig, boolean>;
 
 type LoadingItem = {
   loading: Loading;
@@ -106,9 +106,9 @@ export class LoadingManager {
   private containers: HTMLElement[] = [];
   /** 是否已经添加了全局loading样式 */
   private hasInit = false;
-  private globalConfig: LoadingConfig;
+  private globalConfig: Exclude<Config, boolean>;
 
-  constructor(config?: LoadingConfig) {
+  constructor(config?: Config) {
     this.globalConfig = {
       loadingText: "加载中...",
       ...config,
@@ -155,7 +155,7 @@ export class LoadingManager {
    * 添加 loading
    * @param target loading 的容器
    */
-  public add(config?: LoadingConfig) {
+  public add(config?: Config) {
     const { target, loadingText } = {
       ...this.globalConfig,
       ...config,
@@ -179,7 +179,7 @@ export class LoadingManager {
    * 移除 loading
    * @param target loading 的容器
    */
-  public remove(config?: LoadingConfig) {
+  public remove(config?: Config) {
     const { target } = {
       ...this.globalConfig,
       ...config,
@@ -211,7 +211,7 @@ export class LoadingManager {
     this.clearContainer();
   }
 
-  public updateConfig(config: Partial<LoadingConfig>): void {
+  public updateConfig(config: Partial<Config>): void {
     this.globalConfig = {
       ...this.globalConfig,
       ...config,

@@ -1,4 +1,4 @@
-import { TuxinRequest } from "../../src/index";
+import TuxinRequest from "../../src/index";
 // import { TuxinRequest } from 'tuxin-request';
 
 // 创建请求实例
@@ -8,7 +8,6 @@ const request = new TuxinRequest({
   headers: {
     "Content-Type": "application/json",
   },
-  loading: true,
 });
 
 // 用于显示结果

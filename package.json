@@ -1,7 +1,8 @@
 {
   "name": "tuxin-request",
   "version": "1.0.0",
-  "description": "A powerful axios request wrapper with TypeScript support",
+  "description": "基于 axios 的请求库，支持 TypeScript，支持请求缓存、请求重试、请求加载动画、请求参数加密、响应数据脱敏、重复请求拦截等",
+  "homepage": "https://github.com/toson11/tuxin-request",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",
   "types": "dist/index.d.ts",
@@ -20,7 +21,7 @@
     "http",
     "typescript"
   ],
-  "author": "",
+  "author": "longtuxin",
   "license": "MIT",
   "dependencies": {
     "@types/crypto-js": "^4.2.2",

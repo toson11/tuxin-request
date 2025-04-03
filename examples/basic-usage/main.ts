@@ -1,5 +1,4 @@
 import { TuxinRequest } from "../../src";
-// import { TuxinRequest } from "tuxin-request";
 
 // 创建请求实例
 const request = new TuxinRequest({

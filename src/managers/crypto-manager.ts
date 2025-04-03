@@ -1,4 +1,4 @@
-import CryptoJS from "crypto-js";
+import * as CryptoJS from "crypto-js";
 import { CryptoConfig } from "@/types";
 import { getValueByPath, setValueByPath } from "@/core/utils";
 import { ERROR_KEY } from "@/core/constants";

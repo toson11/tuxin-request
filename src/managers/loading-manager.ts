@@ -166,6 +166,7 @@ export class LoadingManager {
       loadingText,
       this.hasInit
     );
+    console.log("🚀 ~ LoadingManager ~ add ~ loading:", loading.container);
     const loadingItem = this.loadingMap.get(loading.container);
     if (loadingItem) {
       loadingItem.count++;
@@ -179,12 +180,9 @@ export class LoadingManager {
    * 移除 loading
    * @param target loading 的容器
    */
-  public remove(config?: Config) {
-    const { target } = {
-      ...this.globalConfig,
-      ...config,
-    };
+  public remove(target?: LoadingTarget) {
     const container = this.generateContainer(target);
+    console.log("🚀 ~ LoadingManager ~ remove ~ container:", container);
     const loadingItem = this.loadingMap?.get(container);
     if (loadingItem) {
       loadingItem.count--;

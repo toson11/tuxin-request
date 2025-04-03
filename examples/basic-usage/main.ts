@@ -1,12 +1,20 @@
-import { LoadingConfig, RetryConfig, TuxinRequest } from "../../src";
+import { TuxinRequest } from "../../src";
 // import { TuxinRequest } from "tuxin-request";
 
 // 创建请求实例
 const request = new TuxinRequest({
   baseURL: "https://jsonplaceholder.typicode.com",
-  timeout: 1500,
+  timeout: 15000,
   headers: {
     "Content-Type": "application/json",
+  },
+  sensitive: {
+    rules: [
+      {
+        path: "email",
+        type: "email",
+      },
+    ],
   },
 });
 
@@ -21,12 +29,12 @@ function showResult(title: string, data: unknown): void {
 // 无loading
 export async function getPostsWithoutLoading(): Promise<void> {
   try {
-    const response = await request.get("/posts", {
+    const response = await request.get("/posts/1", {
       loading: false,
-      params: {
-        _page: 1,
-        _limit: 5,
-      },
+      // params: {
+      //   _page: 1,
+      //   _limit: 5,
+      // },
     });
     showResult(`获取文章列表成功：`, response);
   } catch (error) {
@@ -40,7 +48,7 @@ export async function getPostWithCache(): Promise<void> {
   try {
     const response = await request.get(`/posts/1`, {
       cache: {
-        cacheTime: 5000,
+        cacheTime: 60000,
       },
     });
     showResult("获取文章（带缓存）成功：", response);
@@ -49,38 +57,17 @@ export async function getPostWithCache(): Promise<void> {
   }
 }
 
-// 无重试
-export async function getUserWithoutRetry(): Promise<void> {
+// 重试
+export async function getUserWithRetry(): Promise<void> {
   try {
-    const response = await request.get(`/users/1`, {
-      retry: false,
+    const response = await request.get(`/posts`, {
+      timeout: 1000, // 设置比较短的超时时间，方便测试重试
+      params: {
+        _page: 1,
+        _limit: 5,
+      },
     });
     showResult("获取用户成功：", response);
-  } catch (error) {
-    showResult("获取用户失败：", error);
-  }
-}
-
-// 脱敏
-export async function getUserWithSensitive(): Promise<void> {
-  try {
-    const response = await request.get("/users/1", {
-      retry: false,
-      sensitive: true,
-    });
-    showResult("获取用户脱敏成功：", response);
-  } catch (error) {
-    showResult("获取用户失败：", error);
-  }
-}
-
-// 加密
-export async function getUserWithCrypto(): Promise<void> {
-  try {
-    const response = await request.get("/users/1", {
-      crypto: true,
-    });
-    showResult("获取用户加密成功：", response);
   } catch (error) {
     showResult("获取用户失败：", error);
   }
@@ -101,9 +88,51 @@ export async function createPostWithDuplicated(): Promise<void> {
         loading: false,
       }
     );
-    showResult("创建文章成功：", response);
+    showResult("重复请求创建文章成功：", response);
   } catch (error) {
-    showResult("创建文章失败：", error);
+    showResult("重复请求创建文章失败：", error);
+  }
+}
+
+// 脱敏
+export async function getUserWithSensitive(): Promise<void> {
+  try {
+    const response = await request.get("/users/1", {
+      sensitive: {
+        rules: [
+          {
+            path: "phone",
+            custom: (value: string) => value.replace(/-/g, ""),
+          },
+          { type: "name", path: "name" },
+        ],
+      },
+    });
+    showResult("脱敏获取用户成功：", response);
+  } catch (error) {
+    showResult("脱敏获取用户失败：", error);
+  }
+}
+
+// 加密
+export async function getUserWithCrypto(): Promise<void> {
+  try {
+    const response = await request.post(
+      "/posts",
+      {
+        title: "foo",
+        body: "bar",
+        userId: 1,
+      },
+      {
+        crypto: {
+          fields: ["title", "body"],
+        },
+      }
+    );
+    showResult("加密获取用户成功：", response);
+  } catch (error) {
+    showResult("加密获取用户失败：", error);
   }
 }
 
@@ -113,7 +142,7 @@ declare global {
     getPostsWithoutLoading: typeof getPostsWithoutLoading;
     getPostWithCache: typeof getPostWithCache;
     createPostWithDuplicated: typeof createPostWithDuplicated;
-    getUserWithoutRetry: typeof getUserWithoutRetry;
+    getUserWithRetry: typeof getUserWithRetry;
     getUserWithSensitive: typeof getUserWithSensitive;
     getUserWithCrypto: typeof getUserWithCrypto;
   }
@@ -122,6 +151,6 @@ declare global {
 window.getPostsWithoutLoading = getPostsWithoutLoading;
 window.getPostWithCache = getPostWithCache;
 window.createPostWithDuplicated = createPostWithDuplicated;
-window.getUserWithoutRetry = getUserWithoutRetry;
+window.getUserWithRetry = getUserWithRetry;
 window.getUserWithSensitive = getUserWithSensitive;
 window.getUserWithCrypto = getUserWithCrypto;

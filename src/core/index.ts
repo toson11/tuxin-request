@@ -118,7 +118,6 @@ class TuxinRequestManager {
 
   /** 设置缓存 */
   protected setCache = async (config: InternalRequestConfig, data: any) => {
-    console.log("🚀 ~ TuxinRequestManager ~ setCache= ~ data:", data);
     if (canCache(config)) {
       // 缓存，必须放到最后，否则会影响脱敏和解密
       this.cacheManager.set(

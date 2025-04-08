@@ -6,6 +6,7 @@ import alias from "@rollup/plugin-alias";
 import { defineConfig } from "rollup";
 import { dirname, resolve as pathResolve } from "path";
 import { fileURLToPath } from "url";
+import terser from "@rollup/plugin-terser";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -48,6 +49,18 @@ export default defineConfig([
         tsconfig: "./tsconfig.json",
         declaration: true,
         declarationDir: "./dist",
+      }),
+      terser({
+        compress: {
+          drop_console: true, // 去除 console
+          pure_funcs: [
+            "console.log",
+            "console.info",
+            "console.debug",
+            "console.warn",
+            "console.error",
+          ],
+        },
       }),
     ],
   },

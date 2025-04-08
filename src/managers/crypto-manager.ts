@@ -1,19 +1,19 @@
-import * as CryptoJS from "crypto-js";
-import { CryptoConfig } from "@/types";
+import CryptoJS from "crypto-js";
+import { CryptoConfig as Config } from "@/types";
 import { getValueByPath, setValueByPath } from "@/core/utils";
-import { ERROR_KEY } from "@/core/constants";
+import { ERROR_MESSAGE_KEY } from "@/core/constants";
 
-type Config = Exclude<CryptoConfig, boolean>;
+const DEFAULT_CONFIG: Required<Omit<Config, "fields">> = {
+  algorithm: "AES",
+  mode: CryptoJS.mode.ECB,
+  padding: CryptoJS.pad.Pkcs7,
+  key: "default-key",
+};
 export class CryptoManager {
-  private globalConfig: Config = {
-    algorithm: "AES",
-    mode: CryptoJS.mode.ECB,
-    padding: CryptoJS.pad.Pkcs7,
-    key: "default-key",
-  };
-
+  private defaultConfig: Config = DEFAULT_CONFIG;
+  // 构造函数，用于初始化对象
   constructor(config?: Config) {
-    this.updateConfig(config);
+    this.updateDefaultConfig(config);
   }
 
   /**
@@ -22,25 +22,32 @@ export class CryptoManager {
    * @param config 单独自定义加密配置
    * @returns 加密后的数据
    */
-  public encrypt(data: any, config: NonNullable<Config> = {}): string {
+  private encryptData(data: any, config: Config): string {
     if (!data) return data;
     try {
       const {
-        key = this.globalConfig.key,
-        algorithm = this.globalConfig.algorithm,
-        mode = this.globalConfig.mode,
-        padding = this.globalConfig.padding,
+        key = DEFAULT_CONFIG.key,
+        algorithm = DEFAULT_CONFIG.algorithm,
+        mode = DEFAULT_CONFIG.mode,
+        padding = DEFAULT_CONFIG.padding,
       } = config;
+      if (!CryptoJS[algorithm]) {
+        throw new Error(
+          `${ERROR_MESSAGE_KEY.ENCRYPT}: 加密算法 ${algorithm} 不存在`
+        );
+      }
+
       const jsonStr = JSON.stringify(data);
-      const encryptKey = CryptoJS.enc.Utf8.parse(key!);
-      const encrypted = CryptoJS[algorithm!].encrypt(jsonStr, encryptKey, {
+      const encryptKey = CryptoJS.enc.Utf8.parse(key);
+
+      const encrypted = CryptoJS[algorithm].encrypt(jsonStr, encryptKey, {
         mode,
         padding,
       });
 
       return encrypted.toString();
     } catch (error) {
-      throw new Error(`${ERROR_KEY.ENCRYPT}: 加密失败, ${error}`);
+      throw new Error(`${ERROR_MESSAGE_KEY.ENCRYPT}: 加密失败, ${error}`);
     }
   }
 
@@ -50,19 +57,18 @@ export class CryptoManager {
    * @param config 单独自定义加密配置
    * @returns 加密后的数据
    */
-  public encryptFields(data: any, config: Config = {}): string {
+  public encrypt(data: any, _config: Config = {}): string {
     if (!data) return data;
-    const fields = config.fields || this.globalConfig.fields;
-
+    const { fields, ...encryptConfig } = { ...this.defaultConfig, ..._config };
     if (!fields?.length) {
-      return this.encrypt(data, config);
+      return this.encryptData(data, encryptConfig);
     }
 
     const result = JSON.parse(JSON.stringify(data));
     fields.forEach((field) => {
       const value = getValueByPath(result, field);
       if (!value) return;
-      const encrypted = this.encrypt(value, config);
+      const encrypted = this.encryptData(value, encryptConfig);
       setValueByPath(result, field, encrypted);
     });
 
@@ -77,12 +83,11 @@ export class CryptoManager {
    */
   public decrypt(encryptedData: string, config: Config = {}): any {
     const {
-      key = this.globalConfig.key,
-      algorithm = this.globalConfig.algorithm,
-      mode = this.globalConfig.mode,
-      padding = this.globalConfig.padding,
-    } = config;
-    if (!key) return encryptedData;
+      key = DEFAULT_CONFIG.key,
+      algorithm = DEFAULT_CONFIG.algorithm,
+      mode = DEFAULT_CONFIG.mode,
+      padding = DEFAULT_CONFIG.padding,
+    } = { ...this.defaultConfig, ...config };
 
     try {
       const decryptKey = CryptoJS.enc.Utf8.parse(key);
@@ -98,21 +103,13 @@ export class CryptoManager {
       const jsonStr = decrypted.toString(CryptoJS.enc.Utf8);
       return JSON.parse(jsonStr);
     } catch (error) {
-      throw new Error(`${ERROR_KEY.ENCRYPT}: 解密失败, ${error}`);
+      throw new Error(`${ERROR_MESSAGE_KEY.ENCRYPT}: 解密失败, ${error}`);
     }
   }
 
-  /**
-   * 更新配置
-   * @param config 新的配置
-   */
-  public updateConfig(config?: Partial<Config>): void {
-    if (config) {
-      const { algorithm, mode, padding, key } = config;
-      if (algorithm) this.globalConfig.algorithm = algorithm;
-      if (mode) this.globalConfig.mode = mode;
-      if (padding) this.globalConfig.padding = padding;
-      if (key) this.globalConfig.key = key;
-    }
+  public updateDefaultConfig(config?: Partial<Config>): void {
+    if (!config) return;
+    // 注意：此处不能使用深拷贝，否则会导致加密算法无法正常使用
+    this.defaultConfig = { ...this.defaultConfig, ...config };
   }
 }

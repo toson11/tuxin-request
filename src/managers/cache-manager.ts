@@ -1,14 +1,11 @@
-import { CacheConfig, CacheItem } from "@/types";
+import { CacheConfig as Config, CacheItem } from "@/types";
+import BaseManager from "./base-manager";
 
 export const DEFAULT_CACHE_TIME = 5000;
-type Config = Exclude<CacheConfig, boolean>;
-export class CacheManager {
+export class CacheManager extends BaseManager<Config> {
   private cache = new Map<string, CacheItem<any>>();
-  private cacheTime: number = DEFAULT_CACHE_TIME;
   constructor(config?: Config) {
-    if (config) {
-      this.cacheTime = config.cacheTime || DEFAULT_CACHE_TIME;
-    }
+    super({ cacheTime: DEFAULT_CACHE_TIME }, config);
   }
 
   /**
@@ -28,7 +25,7 @@ export class CacheManager {
    * @param config 单独自定义缓存配置
    */
   public set<T>(key: string, data: T, config?: Config): void {
-    const cacheTime = config?.cacheTime || this.cacheTime;
+    const cacheTime = config?.cacheTime || this.defaultConfig.cacheTime;
 
     this.cache.set(key, {
       data,
@@ -48,11 +45,5 @@ export class CacheManager {
       clearTimeout(cachedData.timeout);
     }
     this.cache.delete(key);
-  }
-
-  public updateConfig(config: Partial<Config>): void {
-    if (config.cacheTime) {
-      this.cacheTime = config.cacheTime;
-    }
   }
 }

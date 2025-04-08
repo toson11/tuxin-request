@@ -1,27 +1,10 @@
-import { handleBooleanToConfig } from "@/core/utils";
-import { InternalAxiosRequestConfig, RetryConfig } from "@/types";
+import { InternalRequestConfig, RetryConfig as Config } from "@/types";
+import BaseManager from "./base-manager";
+import { RequestInstance } from "@/core";
 
-type Config = Exclude<RetryConfig, boolean>;
-export class RetryManager {
-  private globalConfig: Config;
-
+export class RetryManager extends BaseManager<Config> {
   constructor(config?: Config) {
-    this.globalConfig = {
-      count: 3,
-      delay: 500,
-      ...(config || {}),
-    };
-  }
-
-  /**
-   * 更新重试配置
-   * @param config 新的重试配置
-   */
-  public updateConfig(config: Partial<Config>): void {
-    this.globalConfig = {
-      ...this.globalConfig,
-      ...config,
-    };
+    super({ count: 3, delay: 500 }, config);
   }
 
   /**
@@ -32,17 +15,18 @@ export class RetryManager {
    */
   public async handleRetry(
     error: any,
-    config: InternalAxiosRequestConfig,
-    instance: any
+    config: InternalRequestConfig,
+    instance: RequestInstance
   ): Promise<any> {
-    const retry = {
-      ...this.globalConfig,
-      ...handleBooleanToConfig(config?.retry),
-    };
+    const retry = this.mergeConfig(
+      typeof config.retry === "boolean" ? undefined : config.retry
+    );
     if (typeof retry.count === "number") {
       config.retryCount = config.retryCount || 0;
       if (config.retryCount < retry.count) {
-        await retry.beforeRetry?.(error, config.retryCount);
+        const result = await retry.beforeRetry?.(error, config.retryCount);
+        // 如果 beforeRetry 返回 false，则不进行重试
+        if (result === false) return false;
         config.retryCount++;
         const delay = typeof retry.delay === "number" ? retry.delay : 500;
         return new Promise((resolve) => setTimeout(resolve, delay)).then(() =>

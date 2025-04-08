@@ -15,6 +15,7 @@ export class DuplicatedManager {
   public cancel(requestKey: string): boolean {
     if (!this.pendingRequests.has(requestKey)) return false;
     const controller = this.pendingRequests.get(requestKey);
+
     controller?.abort();
     return this.pendingRequests.delete(requestKey);
   }

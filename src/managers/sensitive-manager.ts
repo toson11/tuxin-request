@@ -1,12 +1,9 @@
 import { getValueByPath, setValueByPath } from "@/core/utils";
-import { SensitiveConfig, SensitiveRule } from "@/types";
-type Config = Exclude<SensitiveConfig, boolean>;
-export class SensitiveManager {
-  private globalRules: SensitiveRule[] = [];
-
+import { SensitiveConfig as Config } from "@/types";
+import BaseManager from "./base-manager";
+export class SensitiveManager extends BaseManager<Config> {
   constructor(config?: Config) {
-    config?.rules &&
-      (this.globalRules = config.rules.map((rule) => ({ ...rule })));
+    super({}, config);
   }
 
   /**
@@ -52,32 +49,12 @@ export class SensitiveManager {
   }
 
   /**
-   * 合并规则
-   */
-  private mergeRules(
-    globalRules: SensitiveRule[],
-    configRules?: SensitiveRule[]
-  ): SensitiveRule[] {
-    if (!configRules?.length) return globalRules;
-    const mergedRules = [...globalRules];
-    configRules.forEach((rule) => {
-      const index = mergedRules.findIndex((r) => r.path === rule.path);
-      if (index !== -1) {
-        mergedRules[index] = { ...rule };
-      } else {
-        mergedRules.push({ ...rule });
-      }
-    });
-    return mergedRules;
-  }
-
-  /**
    * 脱敏数据
    * @param data 要脱敏的数据
    * @returns 脱敏后的数据
    */
   public desensitize(data: any, config?: Config): any {
-    const rules = this.mergeRules(this.globalRules, config?.rules);
+    const { rules } = this.mergeConfig(config);
     if (!rules?.length || !data) return data;
 
     const result = JSON.parse(JSON.stringify(data));
@@ -116,15 +93,5 @@ export class SensitiveManager {
     });
 
     return result;
-  }
-
-  /**
-   * 更新配置
-   * @param config 新的配置
-   */
-  public updateConfig(config: Partial<Config>): void {
-    if (config?.rules) {
-      this.globalRules = config.rules.map((rule) => ({ ...rule }));
-    }
   }
 }

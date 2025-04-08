@@ -1,4 +1,5 @@
-import { TuxinRequest } from "../../src";
+// import TuxinRequest from "../../src";
+import TuxinRequest from "tuxin-request";
 
 // 创建请求实例
 const request = new TuxinRequest({
@@ -9,6 +10,7 @@ const request = new TuxinRequest({
   },
   sensitive: {
     rules: [
+      // @ts-ignore
       {
         path: "email",
         type: "email",
@@ -16,6 +18,31 @@ const request = new TuxinRequest({
     ],
   },
 });
+
+request.instance.interceptors.request.use(
+  (config) => {
+    // 对请求参数进行处理
+    return config;
+  },
+  (error) => {
+    // 对请求错误进行处理
+    alert(`请求失败: ${error.message}`);
+    return Promise.reject(error);
+  }
+);
+
+request.instance.interceptors.response.use(
+  (response) => {
+    // 对响应数据进行处理
+    alert(`请求成功`);
+    return response;
+  },
+  (error) => {
+    // 对响应错误进行处理
+    alert(`请求失败: ${error.message}`);
+    return Promise.reject(error);
+  }
+);
 
 // 用于显示结果
 function showResult(title: string, data: unknown): void {
@@ -30,10 +57,6 @@ export async function getPostsWithoutLoading(): Promise<void> {
   try {
     const response = await request.get("/posts/1", {
       loading: false,
-      // params: {
-      //   _page: 1,
-      //   _limit: 5,
-      // },
     });
     showResult(`获取文章列表成功：`, response);
   } catch (error) {
@@ -60,10 +83,10 @@ export async function getPostWithCache(): Promise<void> {
 export async function getUserWithRetry(): Promise<void> {
   try {
     const response = await request.get(`/posts`, {
-      timeout: 1000, // 设置比较短的超时时间，方便测试重试
+      timeout: 400, // 设置比较短的超时时间，方便测试重试
       params: {
         _page: 1,
-        _limit: 5,
+        _limit: 10,
       },
     });
     showResult("获取用户成功：", response);
@@ -99,10 +122,12 @@ export async function getUserWithSensitive(): Promise<void> {
     const response = await request.get("/users/1", {
       sensitive: {
         rules: [
+          // @ts-ignore
           {
             path: "phone",
             custom: (value: string) => value.replace(/-/g, ""),
           },
+          // @ts-ignore
           { type: "name", path: "name" },
         ],
       },

@@ -1,4 +1,5 @@
-import { LoadingConfig, LoadingTarget } from "@/types";
+import { LoadingConfig as Config, LoadingTarget } from "@/types";
+import BaseManager from "./base-manager";
 export class Loading {
   public el: HTMLElement | null = null;
   public container: HTMLElement;
@@ -92,27 +93,22 @@ export class Loading {
     }
   }
 }
-type Config = Exclude<LoadingConfig, boolean>;
 
 type LoadingItem = {
   loading: Loading;
   count: number;
 };
 
-export class LoadingManager {
+export class LoadingManager extends BaseManager<Config> {
   /** 存储所有loading的容器对应的loading实例 */
   private loadingMap: WeakMap<HTMLElement, LoadingItem>;
   /** 存储所有loading的容器 */
   private containers: HTMLElement[] = [];
   /** 是否已经添加了全局loading样式 */
   private hasInit = false;
-  private globalConfig: Exclude<Config, boolean>;
 
   constructor(config?: Config) {
-    this.globalConfig = {
-      loadingText: "加载中...",
-      ...config,
-    };
+    super({ loadingText: "加载中..." }, config);
     this.loadingMap = new WeakMap();
   }
 
@@ -156,17 +152,13 @@ export class LoadingManager {
    * @param target loading 的容器
    */
   public add(config?: Config) {
-    const { target, loadingText } = {
-      ...this.globalConfig,
-      ...config,
-    };
+    const { target, loadingText } = this.mergeConfig(config);
     // 创建loading，如果hasInit为true，表示已经添加了loading样式，无需重复添加
     const loading = new Loading(
       this.generateContainer(target),
       loadingText,
       this.hasInit
     );
-    console.log("🚀 ~ LoadingManager ~ add ~ loading:", loading.container);
     const loadingItem = this.loadingMap.get(loading.container);
     if (loadingItem) {
       loadingItem.count++;
@@ -182,7 +174,6 @@ export class LoadingManager {
    */
   public remove(target?: LoadingTarget) {
     const container = this.generateContainer(target);
-    console.log("🚀 ~ LoadingManager ~ remove ~ container:", container);
     const loadingItem = this.loadingMap?.get(container);
     if (loadingItem) {
       loadingItem.count--;
@@ -207,12 +198,5 @@ export class LoadingManager {
       }
     });
     this.clearContainer();
-  }
-
-  public updateConfig(config: Partial<Config>): void {
-    this.globalConfig = {
-      ...this.globalConfig,
-      ...config,
-    };
   }
 }

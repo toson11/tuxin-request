@@ -1,5 +1,5 @@
-import TuxinRequest from "../../src";
-// import TuxinRequest from "tuxin-request";
+// import TuxinRequest from "../../src";
+import TuxinRequest from "tuxin-request";
 
 // 创建请求实例
 const request = new TuxinRequest({
@@ -39,7 +39,6 @@ request.instance.interceptors.response.use(
   },
   (error) => {
     // 对响应错误进行处理
-    alert(`请求失败: ${error.message}`);
     return Promise.reject(error);
   }
 );

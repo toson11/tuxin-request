@@ -10,7 +10,7 @@ importers:
     dependencies:
       tuxin-request:
         specifier: ^1.0.0
-        version: 1.0.3(axios@1.8.4)(crypto-js@4.2.0)
+        version: 1.0.4(axios@1.8.4)(crypto-js@4.2.0)
     devDependencies:
       typescript:
         specifier: ^5.3.3
@@ -395,8 +395,8 @@ packages:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
 
-  tuxin-request@1.0.3:
-    resolution: {integrity: sha512-q3DChX18Vb/581W9cGc2ZGnsSIrP2nnb8lxtgEPrlphI3i4Wui+hCPhZihTjVPe6ge9fPZyy7j5Y/AA6E9LGUQ==}
+  tuxin-request@1.0.4:
+    resolution: {integrity: sha512-XfbUcTgiKMaomDwcwM16WJdSgE8K3O3VLKQEjvbku8kJTaiTi+aDpYusxQonyIHSTQ3eeCc94s+ZeM4saRmV0w==}
     peerDependencies:
       axios: ^1.4.0
       crypto-js: ^4.0.0
@@ -736,7 +736,7 @@ snapshots:
 
   source-map-js@1.2.1: {}
 
-  tuxin-request@1.0.3(axios@1.8.4)(crypto-js@4.2.0):
+  tuxin-request@1.0.4(axios@1.8.4)(crypto-js@4.2.0):
     dependencies:
       '@types/crypto-js': 4.2.2
       axios: 1.8.4

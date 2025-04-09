@@ -24,8 +24,7 @@
   "author": "longtuxin",
   "license": "MIT",
   "dependencies": {
-    "@types/crypto-js": "^4.2.2",
-    "lodash-es": "^4.17.21"
+    "@types/crypto-js": "^4.2.2"
   },
   "peerDependencies": {
     "axios": "^1.4.0",

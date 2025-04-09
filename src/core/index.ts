@@ -160,18 +160,19 @@ class TuxinRequestManager {
   /** 设置缓存 */
   protected setCache = async <T = any>(
     config: InternalRequestConfig,
-    data: AxiosResponse<T>
+    response: AxiosResponse<T>
   ) => {
     if (config.cache) {
       if (typeof config.cache === "object" && config.cache.validateResponse) {
         // 如果存在 validateResponse 方法，则调用该方法验证是否缓存
-        const result = config.cache.validateResponse<T>(data);
+        const result = config.cache.validateResponse<T>(response);
         if (!result) return;
       }
       // 缓存，必须放到最后，否则会影响脱敏和解密
       this.cacheManager.set(
         config.requestKey!,
-        data,
+        // TODO: 缓存整个response太大，但后续拦截器需要使用response，需要优化
+        response,
         handleBooleanToConfig(config.cache)
       );
     }

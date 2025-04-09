@@ -1,5 +1,5 @@
-// import TuxinRequest from "../../src";
-import TuxinRequest from "tuxin-request";
+import TuxinRequest from "../../src";
+// import TuxinRequest from "tuxin-request";
 
 // 创建请求实例
 const request = new TuxinRequest({
@@ -10,7 +10,6 @@ const request = new TuxinRequest({
   },
   sensitive: {
     rules: [
-      // @ts-ignore
       {
         path: "email",
         type: "email",
@@ -34,7 +33,6 @@ request.instance.interceptors.request.use(
 request.instance.interceptors.response.use(
   (response) => {
     // 对响应数据进行处理
-    alert(`请求成功`);
     return response;
   },
   (error) => {
@@ -70,6 +68,7 @@ export async function getPostWithCache(): Promise<void> {
   try {
     const response = await request.get(`/posts/1`, {
       cache: {
+        enabled: true,
         cacheTime: 60000,
       },
     });
@@ -121,6 +120,7 @@ export async function getUserWithSensitive(): Promise<void> {
   try {
     const response = await request.get("/users/1", {
       sensitive: {
+        enabled: true,
         rules: [
           // @ts-ignore
           {
@@ -150,6 +150,7 @@ export async function getUserWithCrypto(): Promise<void> {
       },
       {
         crypto: {
+          enabled: true,
           fields: ["title", "body"],
         },
       }

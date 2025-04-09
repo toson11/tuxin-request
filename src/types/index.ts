@@ -1,24 +1,30 @@
 import type { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
 
+export type EnabledConfig<T extends Record<string, any>> =
+  | ({
+      enabled: boolean;
+    } & T)
+  | boolean;
+
 export type RequestCustomConfig<T = any> = {
-  /** 请求失败后的重试次数，默认 3 次 */
-  retry?: RetryConfig | boolean;
-  /** 加密配置 */
-  crypto?: CryptoConfig | boolean;
+  /** 请求失败后的重试次数，默认 true */
+  retry?: EnabledConfig<RetryConfig>;
+  /** 加密配置，默认 false */
+  crypto?: EnabledConfig<CryptoConfig>;
   /** 是否显示loading，默认 true */
-  loading?: LoadingConfig | boolean;
+  loading?: EnabledConfig<LoadingConfig>;
   /** 是否启用请求去重，默认 true */
-  duplicated?: DuplicatedConfig;
-  /** 默认脱敏配置 */
-  sensitive?: SensitiveConfig | boolean;
-  /** 默认请求缓存配置 */
-  cache?: CacheConfig;
+  duplicated?: EnabledConfig<DuplicatedConfig>;
+  /** 默认脱敏配置，默认 false */
+  sensitive?: EnabledConfig<SensitiveConfig>;
+  /** 默认请求缓存配置，默认 false */
+  cache?: EnabledConfig<CacheConfig>;
 };
 
 export type InternalRequestConfig<T = any> = InternalAxiosRequestConfig &
   Omit<RequestConfig<T>, "cache"> & {
-    /** 默认请求缓存配置 */
-    cache?: CacheConfig | boolean;
+    /** 默认请求缓存配置，默认 false */
+    cache?: EnabledConfig<CacheConfig>;
     /** 当前重试次数（内部使用） */
     retryCount?: number;
     /** 请求key */
@@ -86,7 +92,7 @@ export type CacheConfig = {
   cacheTime?: number;
 };
 
-export type DuplicatedConfig = boolean;
+export type DuplicatedConfig = {};
 
 export type LoadingTarget = string | HTMLElement;
 export type LoadingConfig = {

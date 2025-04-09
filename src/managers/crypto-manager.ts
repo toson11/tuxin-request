@@ -3,7 +3,7 @@ import { CryptoConfig as Config } from "@/types";
 import { getValueByPath, setValueByPath } from "@/core/utils";
 import { ERROR_MESSAGE_KEY } from "@/core/constants";
 
-const DEFAULT_CONFIG: Required<Omit<Config, "fields">> = {
+const DEFAULT_CONFIG: Required<Omit<Config, "fields" | "enabled">> = {
   algorithm: "AES",
   mode: CryptoJS.mode.ECB,
   padding: CryptoJS.pad.Pkcs7,
@@ -13,7 +13,7 @@ export class CryptoManager {
   private defaultConfig: Config = DEFAULT_CONFIG;
   // 构造函数，用于初始化对象
   constructor(config?: Config) {
-    this.updateDefaultConfig(config);
+    this.updateConfig(config);
   }
 
   /**
@@ -107,7 +107,7 @@ export class CryptoManager {
     }
   }
 
-  public updateDefaultConfig(config?: Partial<Config>): void {
+  public updateConfig(config?: Partial<Config>): void {
     if (!config) return;
     // 注意：此处不能使用深拷贝，否则会导致加密算法无法正常使用
     this.defaultConfig = { ...this.defaultConfig, ...config };

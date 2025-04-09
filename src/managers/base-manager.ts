@@ -4,7 +4,7 @@ export default class BaseManager<T extends Record<string, any>> {
   protected defaultConfig: T;
   constructor(defaultConfig: T, config?: T) {
     this.defaultConfig = cloneDeep(defaultConfig || ({} as T));
-    config && this.updateDefaultConfig(config);
+    config && this.updateConfig(config);
   }
 
   protected mergeConfig(config?: Partial<T>): T {
@@ -15,7 +15,7 @@ export default class BaseManager<T extends Record<string, any>> {
     };
   }
 
-  public updateDefaultConfig(config: Partial<T>): void {
+  public updateConfig(config: Partial<T>): void {
     this.defaultConfig = this.mergeConfig(config);
   }
 }

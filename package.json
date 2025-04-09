@@ -1,6 +1,6 @@
 {
   "name": "@tuxinlab/request",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "基于 axios 的请求库，支持 TypeScript，支持请求缓存、请求重试、请求加载动画、请求参数加密、响应数据脱敏、重复请求拦截等",
   "homepage": "https://github.com/toson11/tuxin-request",
   "main": "dist/index.js",

@@ -18,6 +18,9 @@ const request = new TuxinRequest({
       },
     ],
   },
+  cache: {
+    maxSize: 2, // 最大缓存数量
+  },
 });
 
 request.instance.interceptors.request.use(
@@ -51,11 +54,12 @@ function showResult(title: string, data: unknown): void {
   }
 }
 
-// 无loading
+// 无loading，带缓存
 export async function getPostsWithoutLoading(): Promise<void> {
   try {
-    const response = await request.get("/posts/1", {
+    const response = await request.get("/posts/1?id=1", {
       loading: false,
+      cache: true,
     });
     showResult(`获取文章列表成功：`, response);
   } catch (error) {

@@ -6,7 +6,7 @@ import type {
 
 export type EnabledConfig<T extends Record<string, any>> =
   | ({
-      enabled: boolean;
+      enabled?: boolean;
     } & T)
   | boolean;
 
@@ -43,10 +43,17 @@ export type InternalRequestConfig<T = any> = InternalAxiosRequestConfig &
 export type RequestConfig<T = any> = AxiosRequestConfig<T> &
   RequestCustomConfig<T>;
 
-export type RequestConfigWithoutCache<T = any> = Omit<
+/** 不带缓存配置的单个自定义请求配置 */
+export type CustomRequestConfigWithoutCache<T = any> = Omit<
   RequestConfig<T>,
   "cache"
 >;
+
+/** 单个自定义请求配置 */
+export type CustomRequestConfig<T = any> = Omit<RequestConfig<T>, "cache"> & {
+  // 不允许设置 maxSize
+  cache?: EnabledConfig<Omit<RequestCacheConfig, "maxSize">>;
+};
 
 /** 脱敏规则 */
 export type SensitiveRule = {
@@ -101,8 +108,8 @@ export interface CacheItem<T> {
 export type CacheConfig = {
   /** TODO: 缓存策略 */
   // strategy?: "memory" | "localStorage" | "sessionStorage";
-  /** TODO: 缓存最大数量 */
-  // maxSize?: number;
+  /** 缓存最大数量 */
+  maxSize?: number;
   /** 缓存时间 */
   cacheTime?: number;
 };

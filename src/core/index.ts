@@ -4,9 +4,10 @@ import axios, {
   type AxiosResponse,
 } from "axios";
 import {
+  CustomRequestConfig,
+  CustomRequestConfigWithoutCache,
   InternalRequestConfig,
   RequestConfig,
-  RequestConfigWithoutCache,
   RequestCustomConfig,
 } from "@/types";
 import {
@@ -64,22 +65,31 @@ class TuxinRequestManager {
     config && this.updateManagerConfig(config);
   }
 
-  /** 处理配置是否启用 */
+  protected isConfigEnabled(config?: { enabled?: boolean } | boolean) {
+    if (!config) return false;
+    return !!(typeof config === "object" ? config.enabled : config);
+  }
+  /** 处理配置是否启用，如果没有启用，则设置为 false */
   protected formatConfigEnabled(
     config: InternalRequestConfig,
     key: keyof RequestCustomConfig
   ) {
-    let managerConfig;
+    const defaultConfig = this.defaultConfig[key];
+    const isDefaultConfigEnabled = this.isConfigEnabled(defaultConfig);
+
+    // 未定义配置，则使用默认配置
     if (config[key] === undefined) {
-      // 如果配置未定义，则使用默认配置
-      managerConfig = this.defaultConfig[key];
-    } else {
-      // 如果配置已定义，则使用配置
-      managerConfig = config[key];
+      if (!isDefaultConfigEnabled) {
+        config[key] = false;
+        return;
+      }
     }
-    // 当配置为 true 或 enabled 时，才启用该配置，否则设置为 false
+
+    // 已定义配置
     const enabled =
-      typeof managerConfig === "object" ? managerConfig.enabled : managerConfig;
+      typeof config[key] === "object"
+        ? (config[key].enabled ?? isDefaultConfigEnabled)
+        : config[key];
     if (!enabled) config[key] = false;
   }
 
@@ -226,7 +236,7 @@ export default class TuxinRequest extends TuxinRequestManager {
   /** 第一个执行的请求拦截器ID */
   private firstInterceptorId: number | undefined;
 
-  constructor(config: RequestConfigWithoutCache) {
+  constructor(config: RequestConfig) {
     super({ ...DEFAULT_MANAGER_CONFIG, ...config });
     this.instance = axios.create(config) as RequestInstance;
 
@@ -366,7 +376,7 @@ export default class TuxinRequest extends TuxinRequestManager {
 
   public async get<T = any>(
     url: string,
-    config?: RequestConfig<T>
+    config?: CustomRequestConfig<T>
   ): Promise<T> {
     return this.instance.get(url, config);
   }
@@ -374,7 +384,7 @@ export default class TuxinRequest extends TuxinRequestManager {
   public async post<T = any>(
     url: string,
     data?: any,
-    config?: RequestConfig<T>
+    config?: CustomRequestConfig<T>
   ): Promise<T> {
     return this.instance.post(url, data, config);
   }
@@ -382,7 +392,7 @@ export default class TuxinRequest extends TuxinRequestManager {
   public async patch<T = any>(
     url: string,
     data?: any,
-    config?: RequestConfigWithoutCache<T>
+    config?: CustomRequestConfigWithoutCache<T>
   ): Promise<T> {
     return this.instance.patch(url, data, config);
   }
@@ -390,14 +400,14 @@ export default class TuxinRequest extends TuxinRequestManager {
   public async put<T = any>(
     url: string,
     data?: any,
-    config?: RequestConfigWithoutCache<T>
+    config?: CustomRequestConfigWithoutCache<T>
   ): Promise<T> {
     return this.instance.put(url, data, config);
   }
 
   public async delete<T = any>(
     url: string,
-    config?: RequestConfigWithoutCache<T>
+    config?: CustomRequestConfigWithoutCache<T>
   ): Promise<T> {
     return this.instance.delete(url, config);
   }

@@ -56,6 +56,7 @@ const request = new TuxinRequest({
   },
   // 全局缓存配置，非必须（使用默认配置）
   cache: {
+    maxSize: 5, // 最多缓存5个请求结果
     cacheTime: 60000, // 缓存时间（毫秒）
   },
 });

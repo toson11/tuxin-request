@@ -155,6 +155,10 @@ const data = await request.get("/users/1", {
   cache: {
     enabled: true,
     cacheTime: 60000, // 缓存时间（毫秒）
+    validateResponse: (response) => {
+      // 根据响应判断是否进行缓存，返回 true 才缓存
+      return true;
+    },
   },
 });
 

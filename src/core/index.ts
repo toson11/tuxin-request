@@ -64,25 +64,40 @@ class TuxinRequestManager {
     config && this.updateManagerConfig(config);
   }
 
-  /** 是否启用，如果未定义，则使用默认配置 */
-  isEnabled(config: InternalRequestConfig, key: keyof RequestCustomConfig) {
+  /** 处理配置是否启用 */
+  protected formatConfigEnabled(
+    config: InternalRequestConfig,
+    key: keyof RequestCustomConfig
+  ) {
     let managerConfig;
     if (config[key] === undefined) {
+      // 如果配置未定义，则使用默认配置
       managerConfig = this.defaultConfig[key];
     } else {
+      // 如果配置已定义，则使用配置
       managerConfig = config[key];
     }
-    return typeof managerConfig === "object"
-      ? managerConfig.enabled
-      : managerConfig;
+    // 当配置为 true 或 enabled 时，才启用该配置，否则设置为 false
+    const enabled =
+      typeof managerConfig === "object" ? managerConfig.enabled : managerConfig;
+    if (!enabled) config[key] = false;
   }
 
-  /** 是否可以缓存 */
-  canCache(config: InternalRequestConfig) {
-    return (
-      this.isEnabled(config, "cache") &&
-      ["get", "post"].includes(config.method?.toLowerCase() || "")
-    );
+  /** 请求前格式化配置，如果没有启用，则设置为 false */
+  protected formatConfigBeforeRequest(config: InternalRequestConfig) {
+    this.formatConfigEnabled(config, "cache");
+    this.formatConfigEnabled(config, "duplicated");
+    this.formatConfigEnabled(config, "loading");
+    this.formatConfigEnabled(config, "retry");
+    this.formatConfigEnabled(config, "sensitive");
+    this.formatConfigEnabled(config, "crypto");
+
+    if (config.cache) {
+      const methodCanCache = ["get", "post"].includes(
+        config.method?.toLowerCase() || ""
+      );
+      if (!methodCanCache) config.cache = false;
+    }
   }
 
   /** 脱敏 */
@@ -90,7 +105,7 @@ class TuxinRequestManager {
     response: AxiosResponse,
     config: InternalRequestConfig
   ) => {
-    if (this.isEnabled(config, "sensitive")) {
+    if (config.sensitive) {
       response.data = this.sensitiveManager.desensitize(
         response.data,
         handleBooleanToConfig(config.sensitive)
@@ -100,15 +115,15 @@ class TuxinRequestManager {
 
   /** 开始loading */
   protected startLoading = (config: InternalRequestConfig) => {
-    if (this.isEnabled(config, "retry") && config.retryCount) return; // 重试请求，不添加loading
-    if (this.isEnabled(config, "loading")) {
+    if (config.retry && config.retryCount) return; // 重试请求，不添加loading
+    if (config.loading) {
       this.loadingManager.add(handleBooleanToConfig(config.loading));
     }
   };
 
   /** 停止loading */
   protected stopLoading = (config: InternalRequestConfig) => {
-    if (this.isEnabled(config, "loading")) {
+    if (config.loading) {
       this.loadingManager.remove(
         typeof config.loading === "object" ? config.loading.target : undefined
       );
@@ -117,7 +132,7 @@ class TuxinRequestManager {
 
   /** 添加重复请求 */
   protected addDuplicated = (config: InternalRequestConfig) => {
-    if (this.isEnabled(config, "duplicated")) {
+    if (config.duplicated) {
       const controller = new AbortController();
       config.signal = controller.signal;
       this.duplicatedManager.add(config.requestKey!, controller);
@@ -126,15 +141,23 @@ class TuxinRequestManager {
 
   /** 移除重复请求 */
   protected removeDuplicated = (config: InternalRequestConfig) => {
-    if (this.isEnabled(config, "duplicated")) {
+    if (config.duplicated) {
       // 响应完成，移除重复请求
       this.duplicatedManager.remove(config.requestKey!);
     }
   };
 
   /** 设置缓存 */
-  protected setCache = async (config: InternalRequestConfig, data: any) => {
-    if (this.canCache(config)) {
+  protected setCache = async <T = any>(
+    config: InternalRequestConfig,
+    data: AxiosResponse<T>
+  ) => {
+    if (config.cache) {
+      if (typeof config.cache === "object" && config.cache.validateResponse) {
+        // 如果存在 validateResponse 方法，则调用该方法验证是否缓存
+        const result = config.cache.validateResponse<T>(data);
+        if (!result) return;
+      }
       // 缓存，必须放到最后，否则会影响脱敏和解密
       this.cacheManager.set(
         config.requestKey!,
@@ -145,7 +168,7 @@ class TuxinRequestManager {
   };
   /** 获取缓存 */
   protected getCache = async (config: InternalRequestConfig) => {
-    if (this.canCache(config)) {
+    if (config.cache) {
       const cache = this.cacheManager.get(config.requestKey!);
       if (cache) {
         const controller = new AbortController();
@@ -161,7 +184,7 @@ class TuxinRequestManager {
 
   /** 加密 */
   protected encrypt = (config: InternalRequestConfig) => {
-    if (this.isEnabled(config, "crypto")) {
+    if (config.crypto) {
       config.data = this.cryptoManager.encrypt(
         config.data,
         handleBooleanToConfig(config.crypto)
@@ -177,13 +200,12 @@ class TuxinRequestManager {
     config: InternalRequestConfig,
     instance: RequestInstance
   ) => {
-    if (this.isEnabled(config, "retry")) {
+    if (config.retry) {
       return this.retryManager.handleRetry(error, config, instance);
     }
   };
 
   /** 更新全局配置 */
-  // 定义一个公共方法 updateManagerConfig，用于更新默认配置
   public updateManagerConfig(config: Partial<RequestConfig>): void {
     this.defaultConfig = config;
     typeof config.retry === "object" &&
@@ -259,6 +281,9 @@ export default class TuxinRequest extends TuxinRequestManager {
   /** 请求拦截器 */
   protected requestHandler = async (config: InternalRequestConfig) => {
     config.requestKey = this.generateRequestKey(config);
+
+    // 格式化配置
+    this.formatConfigBeforeRequest(config);
 
     const configWithCache = await this.getCache(config);
     if (configWithCache) return configWithCache;

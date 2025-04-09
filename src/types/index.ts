@@ -1,10 +1,19 @@
-import type { AxiosRequestConfig, InternalAxiosRequestConfig } from "axios";
+import type {
+  AxiosRequestConfig,
+  InternalAxiosRequestConfig,
+  AxiosResponse,
+} from "axios";
 
 export type EnabledConfig<T extends Record<string, any>> =
   | ({
       enabled: boolean;
     } & T)
   | boolean;
+
+export type RequestCacheConfig = CacheConfig & {
+  /** 校验是否进行缓存, 返回 true 则进行缓存 */
+  validateResponse?: <T = any>(response: AxiosResponse<T>) => boolean;
+};
 
 export type RequestCustomConfig<T = any> = {
   /** 请求失败后的重试次数，默认 true */
@@ -18,13 +27,13 @@ export type RequestCustomConfig<T = any> = {
   /** 默认脱敏配置，默认 false */
   sensitive?: EnabledConfig<SensitiveConfig>;
   /** 默认请求缓存配置，默认 false */
-  cache?: EnabledConfig<CacheConfig>;
+  cache?: EnabledConfig<RequestCacheConfig>;
 };
 
 export type InternalRequestConfig<T = any> = InternalAxiosRequestConfig &
   Omit<RequestConfig<T>, "cache"> & {
     /** 默认请求缓存配置，默认 false */
-    cache?: EnabledConfig<CacheConfig>;
+    cache?: EnabledConfig<RequestCacheConfig>;
     /** 当前重试次数（内部使用） */
     retryCount?: number;
     /** 请求key */
@@ -90,6 +99,11 @@ export interface CacheItem<T> {
 }
 
 export type CacheConfig = {
+  /** TODO: 缓存策略 */
+  // strategy?: "memory" | "localStorage" | "sessionStorage";
+  /** TODO: 缓存最大数量 */
+  // maxSize?: number;
+  /** 缓存时间 */
   cacheTime?: number;
 };
 

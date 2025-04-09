@@ -1,5 +1,5 @@
-// import TuxinRequest from "../../src";
-import TuxinRequest from "@tuxinlab/request";
+import TuxinRequest from "../../src";
+// import TuxinRequest from "@tuxinlab/request";
 
 // 创建请求实例
 const request = new TuxinRequest({
@@ -71,6 +71,9 @@ export async function getPostWithCache(): Promise<void> {
       cache: {
         enabled: true,
         cacheTime: 60000,
+        validateResponse: (response) => {
+          return response.status === 200;
+        },
       },
     });
     showResult("获取文章（带缓存）成功：", response);

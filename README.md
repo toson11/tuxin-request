@@ -116,6 +116,7 @@ request.instance.interceptors.response.use(
 const request = new TuxinRequest({
   baseURL: "https://api.example.com",
   retry: {
+    enabled: true,
     count: 3, // 重试次数
     delay: 1000, // 重试延迟时间（毫秒）
   },
@@ -126,6 +127,7 @@ async function getUserWithRetry() {
   try {
     const data = await request.get("/users/1", {
       retry: {
+        enabled: true,
         count: 5,
         delay: 2000,
         beforeRetry: async (error, retryCount) => {
@@ -151,6 +153,7 @@ const data = await request.get("/users/1", { retry: false });
 // 启用缓存
 const data = await request.get("/users/1", {
   cache: {
+    enabled: true,
     cacheTime: 60000, // 缓存时间（毫秒）
   },
 });
@@ -162,23 +165,25 @@ const data = await request.get("/users/1", { cache: true });
 #### 请求加载动画
 
 ```typescript
-// 全局配置加载动画
+// 全局自定义加载动画配置
 const request = new TuxinRequest({
   baseURL: "https://api.example.com",
   loading: {
+    enabled: true,
     target: "#loading-container", // 加载动画显示的目标元素
     loadingText: "加载中...", // 加载文本
   },
 });
 
-// 单个请求配置加载动画
+// 单个请求加载动画配置
 const data = await request.get("/users/1", {
   loading: {
+    enabled: true,
     target: document.querySelector(".loading-area"),
   },
 });
 
-// 禁用加载动画
+// 简单禁用加载动画
 const data = await request.get("/users/1", { loading: false });
 ```
 
@@ -189,6 +194,7 @@ const data = await request.get("/users/1", { loading: false });
 const request = new TuxinRequest({
   baseURL: "https://api.example.com",
   crypto: {
+    enabled: true,
     algorithm: "AES", // 加密算法: 'AES', 'DES', 'RC4'
     key: "your-secret-key",
     fields: ["password", "token"], // 需要加密的字段
@@ -204,6 +210,7 @@ const data = await request.post(
   },
   {
     crypto: {
+      enabled: true,
       fields: ["password"],
     },
   }
@@ -224,6 +231,7 @@ const data = await request.post(
 const request = new TuxinRequest({
   baseURL: "https://api.example.com",
   sensitive: {
+    enabled: true,
     rules: [
       {
         path: "email",
@@ -240,6 +248,7 @@ const request = new TuxinRequest({
 // 单个请求配置脱敏
 const data = await request.get("/users/1", {
   sensitive: {
+    enabled: true,
     rules: [
       { path: "idCard", type: "idCard" },
       { path: "name", type: "name" },

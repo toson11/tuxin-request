@@ -1,4 +1,5 @@
 import axios, {
+  mergeConfig,
   type AxiosError,
   type AxiosInstance,
   type AxiosResponse,
@@ -74,33 +75,24 @@ class TuxinRequestManager {
     config: InternalRequestConfig,
     key: keyof RequestCustomConfig
   ) {
-    const defaultConfig = this.defaultConfig[key];
-    const isDefaultConfigEnabled = this.isConfigEnabled(defaultConfig);
-
-    // 未定义配置，则使用默认配置
-    if (config[key] === undefined) {
-      if (!isDefaultConfigEnabled) {
-        config[key] = false;
-        return;
-      }
+    if (typeof config[key] === "object" && !config[key].enabled) {
+      config[key] = false;
+      return;
     }
-
-    // 已定义配置
-    const enabled =
-      typeof config[key] === "object"
-        ? (config[key].enabled ?? isDefaultConfigEnabled)
-        : config[key];
-    if (!enabled) config[key] = false;
   }
 
   /** 请求前格式化配置，如果没有启用，则设置为 false */
   protected formatConfigBeforeRequest(config: InternalRequestConfig) {
-    this.formatConfigEnabled(config, "cache");
-    this.formatConfigEnabled(config, "duplicated");
-    this.formatConfigEnabled(config, "loading");
-    this.formatConfigEnabled(config, "retry");
-    this.formatConfigEnabled(config, "sensitive");
-    this.formatConfigEnabled(config, "crypto");
+    const formatConfig = mergeConfig(
+      this.defaultConfig as InternalRequestConfig,
+      config
+    ) as InternalRequestConfig;
+    this.formatConfigEnabled(formatConfig, "cache");
+    this.formatConfigEnabled(formatConfig, "duplicated");
+    this.formatConfigEnabled(formatConfig, "loading");
+    this.formatConfigEnabled(formatConfig, "retry");
+    this.formatConfigEnabled(formatConfig, "sensitive");
+    this.formatConfigEnabled(formatConfig, "crypto");
 
     if (config.cache) {
       const methodCanCache = ["get", "post"].includes(
@@ -108,6 +100,7 @@ class TuxinRequestManager {
       );
       if (!methodCanCache) config.cache = false;
     }
+    return formatConfig;
   }
 
   /** 脱敏 */
@@ -294,16 +287,16 @@ export default class TuxinRequest extends TuxinRequestManager {
     config.requestKey = this.generateRequestKey(config);
 
     // 格式化配置
-    this.formatConfigBeforeRequest(config);
+    const formatConfig = this.formatConfigBeforeRequest(config);
 
-    const configWithCache = await this.getCache(config);
+    const configWithCache = await this.getCache(formatConfig);
     if (configWithCache) return configWithCache;
 
-    this.addDuplicated(config);
+    this.addDuplicated(formatConfig);
 
-    this.startLoading(config);
+    this.startLoading(formatConfig);
 
-    return config;
+    return formatConfig;
   };
 
   /** 请求错误拦截器 */

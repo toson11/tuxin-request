@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      tuxin-request:
+      '@tuxinlab/request':
         specifier: ^1.0.0
-        version: 1.0.4(axios@1.8.4)(crypto-js@4.2.0)
+        version: 1.0.1(axios@1.8.4)(crypto-js@4.2.0)
     devDependencies:
       typescript:
         specifier: ^5.3.3
@@ -259,6 +259,12 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@tuxinlab/request@1.0.1':
+    resolution: {integrity: sha512-/ThZQ4gT6BZM8vTQ3EqkVbnbRp4OQJM6AP4x8p5Gyn5s5lLHjkI2oAGu/O9tm3KQn/ESWn7td6wIR858rFhXfg==}
+    peerDependencies:
+      axios: ^1.4.0
+      crypto-js: ^4.0.0
+
   '@types/crypto-js@4.2.2':
     resolution: {integrity: sha512-sDOLlVbHhXpAUAL0YHDUUwDZf3iN4Bwi4W6a0W0b+QcAezUbRtH4FVb+9J4h+XFPW7l/gQ9F8qC7P+Ec4k8QVQ==}
 
@@ -394,12 +400,6 @@ packages:
   source-map-js@1.2.1:
     resolution: {integrity: sha512-UXWMKhLOwVKb728IUtQPXxfYU+usdybtUrK/8uGE8CQMvrhOpwvzDBwj0QhSL7MQc7vIsISBG8VQ8+IDQxpfQA==}
     engines: {node: '>=0.10.0'}
-
-  tuxin-request@1.0.4:
-    resolution: {integrity: sha512-XfbUcTgiKMaomDwcwM16WJdSgE8K3O3VLKQEjvbku8kJTaiTi+aDpYusxQonyIHSTQ3eeCc94s+ZeM4saRmV0w==}
-    peerDependencies:
-      axios: ^1.4.0
-      crypto-js: ^4.0.0
 
   typescript@5.8.3:
     resolution: {integrity: sha512-p1diW6TqL9L07nNxvRMM7hMMw4c5XOo/1ibL4aAIGmSAt9slTE1Xgw5KWuof2uTOvCg9BY7ZRi+GaF+7sfgPeQ==}
@@ -568,6 +568,13 @@ snapshots:
   '@rollup/rollup-win32-x64-msvc@4.39.0':
     optional: true
 
+  '@tuxinlab/request@1.0.1(axios@1.8.4)(crypto-js@4.2.0)':
+    dependencies:
+      '@types/crypto-js': 4.2.2
+      axios: 1.8.4
+      crypto-js: 4.2.0
+      lodash-es: 4.17.21
+
   '@types/crypto-js@4.2.2': {}
 
   '@types/estree@1.0.7': {}
@@ -735,13 +742,6 @@ snapshots:
       fsevents: 2.3.3
 
   source-map-js@1.2.1: {}
-
-  tuxin-request@1.0.4(axios@1.8.4)(crypto-js@4.2.0):
-    dependencies:
-      '@types/crypto-js': 4.2.2
-      axios: 1.8.4
-      crypto-js: 4.2.0
-      lodash-es: 4.17.21
 
   typescript@5.8.3: {}
 

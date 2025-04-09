@@ -18,9 +18,9 @@
 本仓库依赖于 axios crypto-js 依赖
 
 ```bash
-npm install tuxin-request axios crypto-js
+npm install @tuxinlab/request axios crypto-js
 # 或
-yarn add tuxin-request axios crypto-js
+yarn add @tuxinlab/request axios crypto-js
 ```
 
 ## 使用
@@ -28,7 +28,7 @@ yarn add tuxin-request axios crypto-js
 ### 基础使用
 
 ```typescript
-import TuxinRequest from "tuxin-request";
+import TuxinRequest from "@tuxinlab/request";
 
 // 创建请求实例
 const request = new TuxinRequest({

@@ -7,7 +7,7 @@
     "build": "vite build"
   },
   "dependencies": {
-    "tuxin-request": "^1.0.0"
+    "@tuxinlab/request": "^1.0.0"
   },
   "devDependencies": {
     "typescript": "^5.3.3",

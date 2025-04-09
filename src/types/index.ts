@@ -40,20 +40,21 @@ export type RequestConfigWithoutCache<T = any> = Omit<
 >;
 
 /** 脱敏规则 */
-export type SensitiveRule =
+export type SensitiveRule = {
+  /** 字段路径，支持点号分隔的路径，如 'user.phone' */
+  path: string;
+} & (
   | {
-      /** 字段路径，支持点号分隔的路径，如 'user.phone' */
-      path: string;
       /** 脱敏类型 */
       type: "phone" | "email" | "idCard" | "bankCard" | "name" | "address";
-      custom: never;
+      custom?: never;
     }
   | {
-      path: string;
       /** 自定义脱敏函数 */
       custom: (value: any) => any;
-      type: never;
-    };
+      type?: never;
+    }
+);
 
 /** 脱敏配置 */
 export type SensitiveConfig = {

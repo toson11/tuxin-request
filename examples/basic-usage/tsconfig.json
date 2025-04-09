@@ -7,7 +7,13 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "lib": ["es2015", "dom"],
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "baseUrl": "../../",
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "noImplicitAny": true,
+    "strictNullChecks": true
   },
-  "include": ["./**/*.ts"]
+  "include": ["./**/*.ts", "../../src/**/*.ts"]
 } 

@@ -9,10 +9,12 @@ const request = new TuxinRequest({
     "Content-Type": "application/json",
   },
   sensitive: {
+    enabled: true,
     rules: [
       {
         path: "email",
         type: "email",
+        // custom: (value: string) => value.replace(/-/g, ""),
       },
     ],
   },
@@ -122,12 +124,10 @@ export async function getUserWithSensitive(): Promise<void> {
       sensitive: {
         enabled: true,
         rules: [
-          // @ts-ignore
           {
             path: "phone",
             custom: (value: string) => value.replace(/-/g, ""),
           },
-          // @ts-ignore
           { type: "name", path: "name" },
         ],
       },

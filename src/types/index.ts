@@ -2,6 +2,7 @@ import type {
   AxiosRequestConfig,
   InternalAxiosRequestConfig,
   AxiosResponse,
+  AxiosError,
 } from "axios";
 
 export type EnabledConfig<T extends Record<string, any>> =
@@ -15,7 +16,10 @@ export type RequestCacheConfig = CacheConfig & {
   validateResponse?: <T = any>(response: AxiosResponse<T>) => boolean;
 };
 
-export type RequestCustomConfig<T = any> = {
+/** 请求自定义配置 */
+export type CustomRequestConfig<
+  Other extends Record<string, any> = Record<string, any>,
+> = {
   /** 请求失败后的重试次数，默认 true */
   retry?: EnabledConfig<RetryConfig>;
   /** 加密配置，默认 false */
@@ -28,10 +32,20 @@ export type RequestCustomConfig<T = any> = {
   sensitive?: EnabledConfig<SensitiveConfig>;
   /** 默认请求缓存配置，默认 false */
   cache?: EnabledConfig<RequestCacheConfig>;
-};
+} & Other;
 
-export type InternalRequestConfig<T = any> = InternalAxiosRequestConfig &
-  Omit<RequestConfig<T>, "cache"> & {
+/** 请求配置 */
+export type RequestConfig<
+  T = any,
+  CustomConfig extends Record<string, any> = Record<string, any>,
+> = AxiosRequestConfig<T> & CustomRequestConfig<CustomConfig>;
+
+/** 内部请求配置 */
+export type InternalRequestConfig<
+  T = any,
+  CustomConfig extends Record<string, any> = Record<string, any>,
+> = InternalAxiosRequestConfig<T> &
+  Omit<CustomRequestConfig<CustomConfig>, "cache"> & {
     /** 默认请求缓存配置，默认 false */
     cache?: EnabledConfig<RequestCacheConfig>;
     /** 当前重试次数（内部使用） */
@@ -40,17 +54,17 @@ export type InternalRequestConfig<T = any> = InternalAxiosRequestConfig &
     requestKey?: string;
   };
 
-export type RequestConfig<T = any> = AxiosRequestConfig<T> &
-  RequestCustomConfig<T>;
+/** 请求方法配置（不带缓存配置） */
+export type MethodRequestConfigWithoutCache<
+  T = any,
+  CustomConfig extends Record<string, any> = Record<string, any>,
+> = Omit<RequestConfig<T, CustomRequestConfig<CustomConfig>>, "cache">;
 
-/** 不带缓存配置的单个自定义请求配置 */
-export type CustomRequestConfigWithoutCache<T = any> = Omit<
-  RequestConfig<T>,
-  "cache"
->;
-
-/** 单个自定义请求配置 */
-export type CustomRequestConfig<T = any> = Omit<RequestConfig<T>, "cache"> & {
+/** 请求方法配置 */
+export type MethodRequestConfig<
+  T = any,
+  CustomConfig extends Record<string, any> = Record<string, any>,
+> = Omit<RequestConfig<T, CustomRequestConfig<CustomConfig>>, "cache"> & {
   // 不允许设置 maxSize
   cache?: EnabledConfig<Omit<RequestCacheConfig, "maxSize">>;
 };
@@ -82,7 +96,10 @@ export type RetryConfig = {
   count?: number;
   delay?: number;
   /** 重试前回调 */
-  beforeRetry?: (error: any, retryCount: number) => Promise<any>;
+  beforeRetry?: (
+    error: AxiosError<any>,
+    retryCount: number
+  ) => Promise<boolean>;
 };
 
 export type EncryptAlgorithm = "AES" | "DES" | "RC4";

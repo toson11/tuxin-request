@@ -1,5 +1,5 @@
-import { getValueByPath, setValueByPath } from "@/core/utils";
-import { SensitiveConfig as Config } from "@/types";
+import { getValueByPath, setValueByPath } from "../core/utils";
+import { SensitiveConfig as Config } from "../types";
 import BaseManager from "./base-manager";
 export class SensitiveManager extends BaseManager<Config> {
   constructor(config?: Config) {

@@ -1,4 +1,4 @@
-import { cloneDeep } from "@/core/utils";
+import { cloneDeep } from "../core/utils";
 
 export default class BaseManager<T extends Record<string, any>> {
   protected defaultConfig: T;

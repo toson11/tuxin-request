@@ -1,4 +1,4 @@
-import { LoadingConfig as Config, LoadingTarget } from "@/types";
+import { LoadingConfig as Config, LoadingTarget } from "../types";
 import BaseManager from "./base-manager";
 export class Loading {
   public el: HTMLElement | null = null;

@@ -1,6 +1,6 @@
-import { InternalRequestConfig, RetryConfig as Config } from "@/types";
+import { InternalRequestConfig, RetryConfig as Config } from "../types";
 import BaseManager from "./base-manager";
-import { RequestInstance } from "@/core";
+import { RequestInstance } from "../core";
 
 export class RetryManager extends BaseManager<Config> {
   constructor(config?: Config) {

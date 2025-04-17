@@ -3,14 +3,14 @@ import axios, {
   type AxiosError,
   type AxiosInstance,
   type AxiosResponse,
+  type InternalAxiosRequestConfig,
 } from "axios";
 import {
-  CustomRequestConfig,
-  CustomRequestConfigWithoutCache,
+  MethodRequestConfig,
+  MethodRequestConfigWithoutCache,
   InternalRequestConfig,
   RequestConfig,
-  RequestCustomConfig,
-} from "@/types";
+} from "../types";
 import {
   CacheManager,
   LoadingManager,
@@ -18,11 +18,11 @@ import {
   SensitiveManager,
   RetryManager,
   DuplicatedManager,
-} from "@/managers";
+} from "../managers";
 import { handleBooleanToConfig } from "./utils";
 import { ERROR_MESSAGE_KEY } from "./constants";
 
-const DEFAULT_MANAGER_CONFIG: RequestCustomConfig = {
+const DEFAULT_MANAGER_CONFIG: RequestConfig = {
   retry: true,
   loading: true,
   duplicated: true,
@@ -53,9 +53,9 @@ class TuxinRequestManager {
   /** 重复请求管理 */
   public duplicatedManager: DuplicatedManager;
   /** 全局配置 */
-  public defaultConfig: RequestCustomConfig = {};
+  public defaultConfig: RequestConfig = {};
 
-  constructor(config?: RequestCustomConfig) {
+  constructor(config?: RequestConfig) {
     // 功能模块初始化
     this.cacheManager = new CacheManager();
     this.loadingManager = new LoadingManager();
@@ -73,7 +73,7 @@ class TuxinRequestManager {
   /** 处理配置是否启用，如果没有启用，则设置为 false */
   protected formatConfigEnabled(
     config: InternalRequestConfig,
-    key: keyof RequestCustomConfig
+    key: keyof RequestConfig
   ) {
     if (typeof config[key] === "object" && !config[key].enabled) {
       config[key] = false;
@@ -200,7 +200,7 @@ class TuxinRequestManager {
 
   /** 重试 */
   protected retry = async (
-    error: AxiosError,
+    error: AxiosError<any>,
     config: InternalRequestConfig,
     instance: RequestInstance
   ) => {
@@ -225,12 +225,15 @@ class TuxinRequestManager {
   }
 }
 
-export default class TuxinRequest extends TuxinRequestManager {
+export default class TuxinRequest<
+  D = any,
+  CustomConfig extends Record<string, any> = {},
+> extends TuxinRequestManager {
   public instance: RequestInstance;
   /** 第一个执行的请求拦截器ID */
   private firstInterceptorId: number | undefined;
 
-  constructor(config: RequestConfig) {
+  constructor(config: RequestConfig<D, CustomConfig>) {
     super({ ...DEFAULT_MANAGER_CONFIG, ...config });
     this.instance = axios.create(config) as RequestInstance;
 
@@ -273,7 +276,9 @@ export default class TuxinRequest extends TuxinRequestManager {
     };
   }
 
-  protected onFinish = async (config: InternalRequestConfig) => {
+  protected onFinish = async (
+    config: InternalRequestConfig<D, CustomConfig>
+  ) => {
     if (!config) {
       this.loadingManager.clear();
       return;
@@ -283,11 +288,14 @@ export default class TuxinRequest extends TuxinRequestManager {
   };
 
   /** 请求拦截器 */
-  protected requestHandler = async (config: InternalRequestConfig) => {
-    config.requestKey = this.generateRequestKey(config);
+  protected requestHandler = async (
+    config: InternalAxiosRequestConfig<any>
+  ): Promise<InternalAxiosRequestConfig<any>> => {
+    const internalConfig = config as InternalRequestConfig<D, CustomConfig>;
+    internalConfig.requestKey = this.generateRequestKey(internalConfig);
 
     // 格式化配置
-    const formatConfig = this.formatConfigBeforeRequest(config);
+    const formatConfig = this.formatConfigBeforeRequest(internalConfig);
 
     const configWithCache = await this.getCache(formatConfig);
     if (configWithCache) return configWithCache;
@@ -310,7 +318,7 @@ export default class TuxinRequest extends TuxinRequestManager {
 
   /** 响应成功拦截器 */
   protected responseSuccessHandler = (response: AxiosResponse) => {
-    const config = response.config as InternalRequestConfig;
+    const config = response.config as InternalRequestConfig<D, CustomConfig>;
     this.onFinish(config);
     this.desensitize(response, config);
     this.setCache(config, response);
@@ -321,7 +329,7 @@ export default class TuxinRequest extends TuxinRequestManager {
 
   /** 响应错误拦截器 */
   protected responseErrorHandler = async (error: AxiosError) => {
-    const config = error.config as InternalRequestConfig & {
+    const config = error.config as InternalRequestConfig<D, CustomConfig> & {
       signal: any;
     };
 
@@ -370,39 +378,39 @@ export default class TuxinRequest extends TuxinRequestManager {
 
   public async get<T = any>(
     url: string,
-    config?: CustomRequestConfig<T>
-  ): Promise<T> {
+    config?: MethodRequestConfig<T>
+  ): Promise<{ data: T }> {
     return this.instance.get(url, config);
   }
 
   public async post<T = any>(
     url: string,
     data?: any,
-    config?: CustomRequestConfig<T>
-  ): Promise<T> {
+    config?: MethodRequestConfig<T>
+  ): Promise<{ data: T }> {
     return this.instance.post(url, data, config);
   }
 
   public async patch<T = any>(
     url: string,
     data?: any,
-    config?: CustomRequestConfigWithoutCache<T>
-  ): Promise<T> {
+    config?: MethodRequestConfigWithoutCache<T>
+  ): Promise<{ data: T }> {
     return this.instance.patch(url, data, config);
   }
 
   public async put<T = any>(
     url: string,
     data?: any,
-    config?: CustomRequestConfigWithoutCache<T>
-  ): Promise<T> {
+    config?: MethodRequestConfigWithoutCache<T>
+  ): Promise<{ data: T }> {
     return this.instance.put(url, data, config);
   }
 
   public async delete<T = any>(
     url: string,
-    config?: CustomRequestConfigWithoutCache<T>
-  ): Promise<T> {
+    config?: MethodRequestConfigWithoutCache<T>
+  ): Promise<{ data: T }> {
     return this.instance.delete(url, config);
   }
 }

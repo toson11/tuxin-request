@@ -1,4 +1,4 @@
-import { CacheConfig as Config, CacheItem } from "@/types";
+import { CacheConfig as Config, CacheItem } from "../types";
 import BaseManager from "./base-manager";
 
 /** 默认缓存时间 */

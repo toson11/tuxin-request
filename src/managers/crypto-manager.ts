@@ -1,7 +1,7 @@
 import CryptoJS from "crypto-js";
-import { CryptoConfig as Config } from "@/types";
-import { getValueByPath, setValueByPath } from "@/core/utils";
-import { ERROR_MESSAGE_KEY } from "@/core/constants";
+import { CryptoConfig as Config } from "../types";
+import { getValueByPath, setValueByPath } from "../core/utils";
+import { ERROR_MESSAGE_KEY } from "../core/constants";
 
 const DEFAULT_CONFIG: Required<Omit<Config, "fields" | "enabled">> = {
   algorithm: "AES",
